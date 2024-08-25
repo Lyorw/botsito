@@ -1,11 +1,14 @@
+# app.py
+
 from flask import Flask, request, jsonify
 import http.client
 import json
+from preguntas import obtener_mensaje_bienvenida, manejar_respuesta_interactiva, validar_nombre_apellido
 
 app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
-PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
+PAGE_ID = "421866537676248"
 ACCESS_TOKEN = "EAANytZCyISKIBO8KFhSQKYTSMEZCpWe5PxEfhl9ecEp2elewqm5KLJ23Fmk0ZA4JZAANavrAvPWknpGhf5EiwevBl9kTxIoPXLtZC6lwcNX4YU6I0l93T9uelC3nikXZA0ITZB6LXtlCIVYBDu3jO408Q3OaP110f5VXn5rndF8n1qeYZCZBDSaTl0pEx8ZBUZCRXivDVOZAqZCDA4SOERALxyq8Pfidkqw8ZD"
 
 @app.route('/')
@@ -16,7 +19,7 @@ def index():
 def webhook():
     if request.method == 'GET':
         return verificar_token(request)
-    elif request.method == 'POST':
+    elif request.method == 'POST']:
         return recibir_mensajes(request)
 
 def verificar_token(req):
@@ -31,7 +34,7 @@ def verificar_token(req):
 def recibir_mensajes(req):
     try:
         data = request.get_json()
-        print("Data received:", data)  # Verificar la estructura del mensaje recibido
+        print("Data received:", data)
 
         entry = data['entry'][0]
         changes = entry['changes'][0]
@@ -40,54 +43,30 @@ def recibir_mensajes(req):
 
         if objeto_mensaje:
             messages = objeto_mensaje[0]
-            if messages.get('type') == 'text':
-                text = messages.get("text", {}).get("body", "")
-                numero = messages.get("from", "")
+            text = messages.get("text", {}).get("body", "")
+            numero = messages.get("from", "")
 
-                if "😊" not in text:
-                    responder_mensaje = {
+            if "😊" not in text:
+                respuesta = validar_nombre_apellido(text, numero)
+
+                if isinstance(respuesta, dict):  # This checks if the response is the welcome message
+                    respuesta["to"] = numero
+                    enviar_mensajes_whatsapp(respuesta, numero)
+                else:
+                    data = {
                         "messaging_product": "whatsapp",
                         "recipient_type": "individual",
                         "to": numero,
-                        "type": "interactive",
-                        "interactive": {
-                            "type": "button",
-                            "body": {
-                                "text": (
-                                    "😊 ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. Estoy aquí para ayudarte a completar el proceso de manera rápida y segura. Antes de comenzar, ¿estás de acuerdo en llevar a cabo este proceso de autenticación? Por favor, responde con 'Sí' para continuar o 'No' si prefieres no seguir adelante."
-                                )
-                            },
-                            "action": {
-                                "buttons": [
-                                    {
-                                        "type": "reply",
-                                        "reply": {
-                                            "id": "si_button",
-                                            "title": "Sí"
-                                        }
-                                    },
-                                    {
-                                        "type": "reply",
-                                        "reply": {
-                                            "id": "no_button",
-                                            "title": "No"
-                                        }
-                                    }
-                                ]
-                            }
+                        "type": "text",
+                        "text": {
+                            "preview_url": False,
+                            "body": respuesta
                         }
                     }
-                    enviar_mensajes_whatsapp(responder_mensaje, numero)
+                    enviar_mensajes_whatsapp(data, numero)
             elif messages.get('type') == 'interactive':
                 reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
-                numero = messages.get("from", "")
-
-                if reply_id == "si_button":
-                    responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
-                elif reply_id == "no_button":
-                    responder_mensaje = "Okey, nos vemos pronto."
-                else:
-                    responder_mensaje = "Opción no reconocida."
+                responder_mensaje = manejar_respuesta_interactiva(reply_id)
 
                 data = {
                     "messaging_product": "whatsapp",
@@ -103,7 +82,7 @@ def recibir_mensajes(req):
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
-        print(f"Error: {e}")  # Imprimir el error para depuración
+        print(f"Error: {e}")
         return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
 
 def enviar_mensajes_whatsapp(data, number):
