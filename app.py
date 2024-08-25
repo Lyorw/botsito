@@ -51,47 +51,48 @@ def recibir_mensajes(req):
                 intentos_nombre[numero] = 0
                 intentos_apellido[numero] = 0
 
-            if "😊" not in text:
-                if intentos_nombre[numero] < 2:
-                    intentos_nombre[numero] += 1
-                    respuesta, correcto = validar_nombre_apellido(text, intentos_nombre[numero], "nombre")
-                elif intentos_apellido[numero] < 2:
-                    intentos_apellido[numero] += 1
-                    respuesta, correcto = validar_nombre_apellido(text, intentos_apellido[numero], "apellido")
-                else:
-                    respuesta = obtener_mensaje_bienvenida()
+            if intentos_nombre[numero] < 2:  # Pregunta de nombre
+                intentos_nombre[numero] += 1
+                respuesta, correcto = validar_nombre_apellido(text, intentos_nombre[numero], "nombre")
+                if correcto and "nombre" in respuesta.lower():
+                    intentos_nombre[numero] = 2  # Bloquear la pregunta de nombre
 
-                if correcto:
-                    intentos_nombre[numero] = 2  # Lock name question
-                    intentos_apellido[numero] = 2  # Lock surname question
+            elif intentos_apellido[numero] < 2:  # Pregunta de apellido
+                intentos_apellido[numero] += 1
+                respuesta, correcto = validar_nombre_apellido(text, intentos_apellido[numero], "apellido")
+                if correcto and "¡perfecto!" in respuesta.lower():
+                    intentos_apellido[numero] = 2  # Bloquear la pregunta de apellido
 
-                data = {
-                    "messaging_product": "whatsapp",
-                    "recipient_type": "individual",
-                    "to": numero,
-                    "type": "text",
-                    "text": {
-                        "preview_url": False,
-                        "body": respuesta
-                    }
+            else:  # Redirigir al inicio después de los intentos fallidos
+                respuesta = obtener_mensaje_bienvenida()
+
+            data = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": numero,
+                "type": "text",
+                "text": {
+                    "preview_url": False,
+                    "body": respuesta
                 }
-                enviar_mensajes_whatsapp(data, numero)
+            }
+            enviar_mensajes_whatsapp(data, numero)
 
-            elif messages.get('type') == 'interactive':
-                reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
-                responder_mensaje = manejar_respuesta_interactiva(reply_id)
+        elif messages.get('type') == 'interactive':
+            reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
+            responder_mensaje = manejar_respuesta_interactiva(reply_id)
 
-                data = {
-                    "messaging_product": "whatsapp",
-                    "recipient_type": "individual",
-                    "to": numero,
-                    "type": "text",
-                    "text": {
-                        "preview_url": False,
-                        "body": responder_mensaje
-                    }
+            data = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": numero,
+                "type": "text",
+                "text": {
+                    "preview_url": False,
+                    "body": responder_mensaje
                 }
-                enviar_mensajes_whatsapp(data, numero)
+            }
+            enviar_mensajes_whatsapp(data, numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
