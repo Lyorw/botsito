@@ -37,9 +37,9 @@ def recibir_mensajes(req):
         data = request.get_json()
         print("Data received:", data)
 
-        entry = data['entry'][0]
-        changes = entry['changes'][0]
-        value = changes['value']
+        entry = data.get('entry', [{}])[0]
+        changes = entry.get('changes', [{}])[0]
+        value = changes.get('value', {})
         objeto_mensaje = value.get('messages', [])
 
         if objeto_mensaje:
@@ -62,6 +62,7 @@ def recibir_mensajes(req):
                 respuesta, correcto = validar_nombre_apellido(text, intentos_apellido[numero], "apellido")
                 if correcto and "¡perfecto!" in respuesta.lower():
                     intentos_apellido[numero] = 2  # Bloquear la pregunta de apellido
+                    respuesta = "Gracias por completar el formulario."  # Mensaje final
 
             else:  # Redirigir al inicio después de los intentos fallidos
                 respuesta = obtener_mensaje_bienvenida()
@@ -78,7 +79,7 @@ def recibir_mensajes(req):
             }
             enviar_mensajes_whatsapp(data, numero)
 
-        elif messages.get('type') == 'interactive':
+        elif 'interactive' in messages:  # Manejo de interacciones
             reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
             responder_mensaje = manejar_respuesta_interactiva(reply_id)
 
