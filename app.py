@@ -36,7 +36,7 @@ def recibir_mensajes(req):
         entry = data['entry'][0]
         changes = entry['changes'][0]
         value = changes['value']
-        objeto_mensaje = value['messages']
+        objeto_mensaje = value.get('messages', [])
 
         if objeto_mensaje:
             messages = objeto_mensaje[0]
