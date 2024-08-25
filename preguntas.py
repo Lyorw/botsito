@@ -1,3 +1,5 @@
+# preguntas.py
+
 def obtener_mensaje_bienvenida():
     return {
         "messaging_product": "whatsapp",
@@ -29,23 +31,22 @@ def obtener_mensaje_bienvenida():
         }
     }
 
-def manejar_respuesta_interactiva(reply_id, intentos):
+def manejar_respuesta_interactiva(reply_id):
     if reply_id == "si_button":
-        return "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)", "nombre", 0
+        return "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
     elif reply_id == "no_button":
-        return "Okey, nos vemos pronto.", None, None
+        return "Okey, nos vemos pronto."
     else:
-        return "Opción no reconocida.", None, None
+        return "Opción no reconocida."
 
-def validar_nombre_apellido(respuesta, tipo, intentos):
-    if any(char.isdigit() for char in respuesta):
-        intentos += 1
-        if intentos >= 2:
-            return "Todos los intentos son fallidos, se le redirigirá al inicio.", True, intentos
+def validar_nombre_apellido(input_text, intentos, tipo):
+    if any(char.isdigit() for char in input_text):
+        if intentos < 2:
+            return f"El {tipo} no debe contener números, por favor vuelva a ingresar. Intento {intentos}/2", False
         else:
-            return f"El {tipo} no debe contener números, por favor vuelva a ingresar. Intento {intentos}/2", False, intentos
+            return "Todos los intentos son fallidos, se le redirigirá al inicio.", True
     else:
         if tipo == "nombre":
-            return "Gracias, ahora ¿cuáles son tus apellidos? (Por favor, solo escribe la respuesta)", "apellido", 0
-        else:
-            return "¡Perfecto! Gracias por proporcionar tus datos.", True, intentos
+            return "Gracias, ahora ¿cuáles son tus apellidos? (Por favor, solo escribe la respuesta)", True
+        elif tipo == "apellido":
+            return "¡Perfecto! Gracias por completar el formulario.", True
