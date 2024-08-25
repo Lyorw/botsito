@@ -5,6 +5,7 @@ from preguntas import obtener_mensaje_bienvenida, manejar_respuesta_interactiva,
 
 app = Flask(__name__)
 
+# Configuración de variables
 TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"
 ACCESS_TOKEN = "EAANytZCyISKIBO5rde4yb75NwJctkw17D6l94biffuEUJtC5hZA7HjL7ZBeUn9rAIexepgRXIwDHhhPKZA22fPds5Wztt3WXdVKT3I4ZBjGZC2zeZCcWRU66BJB5zGhbJccmalG7miZB3RfMRQ8q7wBr74fZAGiUJZBiKSEZB7uJZCi3fJYq7i5MXPY7ZAZAA1L4yELyQB1ZC9jlTbU4hoWynGPb4TFbnxKmP0ZD"
@@ -35,7 +36,7 @@ def verificar_token(req):
 def recibir_mensajes(req):
     try:
         data = request.get_json()
-        print("Data received:", data)
+        print("Data received:", data)  # Verifica los datos recibidos
 
         entry = data.get('entry', [{}])[0]
         changes = entry.get('changes', [{}])[0]
@@ -46,6 +47,8 @@ def recibir_mensajes(req):
             messages = objeto_mensaje[0]
             text = messages.get("text", {}).get("body", "")
             numero = messages.get("from", "")
+
+            print(f"Received message from {numero}: {text}")  # Verifica el mensaje recibido
 
             if numero not in intentos_nombre:
                 intentos_nombre[numero] = 0
@@ -59,7 +62,7 @@ def recibir_mensajes(req):
                         respuesta = "Gracias, ahora ¿cuáles son tus apellidos?"
                 else:
                     respuesta = respuesta
-                
+
             elif intentos_apellido[numero] < 2:  # Pregunta de apellido
                 respuesta, correcto = validar_nombre_apellido(text, intentos_apellido[numero], "apellido")
                 if correcto:
@@ -105,6 +108,8 @@ def recibir_mensajes(req):
         return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
 
 def enviar_mensajes_whatsapp(data, number):
+    print(f"Sending message to {number}: {data}")  # Agrega esto para depuración
+
     data = json.dumps(data)
 
     headers = {
