@@ -1,16 +1,35 @@
 from flask import Flask, request, jsonify, render_template
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 import http.client
 import json
 
 app = Flask(__name__)
+
+# Configuración de la base de datos SQLITE
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///metapython.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Modelo de la tabla log
+class Log(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    fecha_y_hora = db.Column(db.DateTime, default=datetime.utcnow)
+    texto = db.Column(db.TEXT)
+
+# Crear la tabla si no existe
+with app.app_context():
+    db.create_all()
 
 # Token de verificación para la configuración
 TOKEN_ANDERCODE = "ANDERCODE"
 
 @app.route('/')
 def index():
-    # Aquí puedes renderizar una página si lo deseas, por ahora devuelve un mensaje simple
-    return "Webhook activo y esperando mensajes."
+    # Obtener todos los registros de la base de datos
+    registros = Log.query.all()
+    registros_ordenados = sorted(registros, key=lambda x: x.fecha_y_hora, reverse=True)
+    return render_template('index.html', registros=registros_ordenados)
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
@@ -42,13 +61,23 @@ def recibir_mensajes(req):
                 text = messages["text"]["body"]
                 numero = messages["from"]
 
+                # Guardar Log en la BD
+                agregar_mensajes_log(json.dumps(messages))
+
                 # Responder "chau" si el mensaje contiene "equisde"
                 if "equisde" in text.lower():
                     enviar_mensajes_whatsapp("chau", numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
-        return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
+        agregar_mensajes_log(json.dumps(e))
+        return jsonify({'message': 'EVENT_RECEIVED'})
+
+def agregar_mensajes_log(texto):
+    # Guardar el mensaje en la base de datos
+    nuevo_registro = Log(texto=texto)
+    db.session.add(nuevo_registro)
+    db.session.commit()
 
 def enviar_mensajes_whatsapp(texto, number):
     data = {
@@ -77,7 +106,7 @@ def enviar_mensajes_whatsapp(texto, number):
         response = connection.getresponse()
         print(response.status, response.reason)
     except Exception as e:
-        print(f"Error al enviar el mensaje: {e}")
+        agregar_mensajes_log(json.dumps(e))
     finally:
         connection.close()
 
