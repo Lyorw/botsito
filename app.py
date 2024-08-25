@@ -9,8 +9,7 @@ TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"
 ACCESS_TOKEN = "EAANytZCyISKIBO8KFhSQKYTSMEZCpWe5PxEfhl9ecEp2elewqm5KLJ23Fmk0ZA4JZAANavrAvPWknpGhf5EiwevBl9kTxIoPXLtZC6lwcNX4YU6I0l93T9uelC3nikXZA0ITZB6LXtlCIVYBDu3jO408Q3OaP110f5VXn5rndF8n1qeYZCZBDSaTl0pEx8ZBUZCRXivDVOZAqZCDA4SOERALxyq8Pfidkqw8ZD"
 
-intentos_nombre = {}
-intentos_apellido = {}
+usuarios = {}
 
 @app.route('/')
 def index():
@@ -44,49 +43,45 @@ def recibir_mensajes(req):
 
         if objeto_mensaje:
             messages = objeto_mensaje[0]
-            text = messages.get("text", {}).get("body", "")
             numero = messages.get("from", "")
-            campo = "nombre" if numero not in intentos_nombre else "apellido"
+            text = messages.get("text", {}).get("body", "")
+            
+            if numero not in usuarios:
+                usuarios[numero] = {"estado": None, "intentos": 0}
 
-            if numero not in intentos_nombre:
-                intentos_nombre[numero] = 0
+            estado_actual = usuarios[numero]["estado"]
+            intentos = usuarios[numero]["intentos"]
 
-            if "😊" not in text:
-                respuesta = validar_nombre_apellido(text, numero, intentos_nombre, campo)
-
-                if isinstance(respuesta, dict):  # Redirigir al inicio
+            if estado_actual is None:  # Primera interacción
+                if messages.get('type') == 'interactive':
+                    reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
+                    respuesta, nuevo_estado, _ = manejar_respuesta_interactiva(reply_id, intentos)
+                    usuarios[numero]["estado"] = nuevo_estado
+                else:
+                    respuesta = obtener_mensaje_bienvenida()
                     respuesta["to"] = numero
                     enviar_mensajes_whatsapp(respuesta, numero)
+                    return jsonify({'message': 'EVENT_RECEIVED'})
+            
+            else:  # Validación de nombre o apellido
+                respuesta, exito, intentos = validar_nombre_apellido(text, estado_actual, intentos)
+                if exito:
+                    usuarios[numero]["estado"] = None
+                    usuarios[numero]["intentos"] = 0
                 else:
-                    data = {
-                        "messaging_product": "whatsapp",
-                        "recipient_type": "individual",
-                        "to": numero,
-                        "type": "text",
-                        "text": {
-                            "preview_url": False,
-                            "body": respuesta
-                        }
-                    }
-                    enviar_mensajes_whatsapp(data, numero)
+                    usuarios[numero]["intentos"] = intentos
 
-                if campo == "nombre" and intentos_nombre[numero] == 0:
-                    intentos_apellido[numero] = 0  # Resetear intentos para el apellido
-            elif messages.get('type') == 'interactive':
-                reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
-                responder_mensaje = manejar_respuesta_interactiva(reply_id)
-
-                data = {
-                    "messaging_product": "whatsapp",
-                    "recipient_type": "individual",
-                    "to": numero,
-                    "type": "text",
-                    "text": {
-                        "preview_url": False,
-                        "body": responder_mensaje
-                    }
+            data = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": numero,
+                "type": "text",
+                "text": {
+                    "preview_url": False,
+                    "body": respuesta
                 }
-                enviar_mensajes_whatsapp(data, numero)
+            }
+            enviar_mensajes_whatsapp(data, numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
