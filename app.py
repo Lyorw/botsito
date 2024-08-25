@@ -19,8 +19,9 @@ def index():
 def webhook():
     if request.method == 'GET':
         return verificar_token(request)
-    elif request.method == 'POST']:
+    elif request.method == 'POST':  # Corregido aquí
         return recibir_mensajes(request)
+
 
 def verificar_token(req):
     token = req.args.get('hub.verify_token')
