@@ -79,12 +79,13 @@ def recibir_mensajes(req):
                         }
                     }
                     enviar_mensajes_whatsapp(responder_mensaje, numero)
-                elif text.lower() == "sí":
-                    responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
-                    enviar_mensajes_whatsapp_texto(responder_mensaje, numero)
-                elif text.lower() == "no":
-                    responder_mensaje = "Okey, nos vemos pronto."
-                    enviar_mensajes_whatsapp_texto(responder_mensaje, numero)
+                elif "reply" in messages:
+                    if messages["reply"]["id"] == "si_button":
+                        responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
+                        enviar_mensajes_whatsapp_texto(responder_mensaje, numero)
+                    elif messages["reply"]["id"] == "no_button":
+                        responder_mensaje = "Okey, nos vemos pronto."
+                        enviar_mensajes_whatsapp_texto(responder_mensaje, numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
@@ -104,7 +105,7 @@ def enviar_mensajes_whatsapp(data, number):
     try:
         connection.request("POST", "/v20.0/421866537676248/messages", data, headers)
         response = connection.getresponse()
-        print(response.status, response.reason)
+        print(response.status, response.reason, response.read().decode())
     except Exception as e:
         print(f"Error al enviar el mensaje: {e}")
     finally:
