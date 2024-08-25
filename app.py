@@ -53,7 +53,9 @@ def recibir_mensajes(req):
                         "interactive": {
                             "type": "button",
                             "body": {
-                                "text": "Hola, escoge una opción:"
+                                "text": (
+                                    "😊 ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. Estoy aquí para ayudarte a completar el proceso de manera rápida y segura. Antes de comenzar, ¿estás de acuerdo en llevar a cabo este proceso de autenticación? Por favor, responde con 'Sí' para continuar o 'No' si prefieres no seguir adelante."
+                                )
                             },
                             "action": {
                                 "buttons": [
@@ -81,9 +83,9 @@ def recibir_mensajes(req):
                 numero = messages.get("from", "")
 
                 if reply_id == "si_button":
-                    responder_mensaje = "RIP"
+                    responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
                 elif reply_id == "no_button":
-                    responder_mensaje = "equisde"
+                    responder_mensaje = "Okey, nos vemos pronto."
                 else:
                     responder_mensaje = "Opción no reconocida."
 
