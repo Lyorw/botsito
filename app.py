@@ -42,8 +42,8 @@ def recibir_mensajes(req):
                 text = messages["text"]["body"]
                 numero = messages["from"]
 
-                if "😊" not in text:
-                    responder_mensaje = {
+                if "boton" in text:
+                    data = {
                         "messaging_product": "whatsapp",
                         "recipient_type": "individual",
                         "to": numero,
@@ -51,41 +51,61 @@ def recibir_mensajes(req):
                         "interactive": {
                             "type": "button",
                             "body": {
-                                "text": (
-                                    "😊S ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. "
-                                    "Estoy aquí para ayudarte a completar el proceso de manera rápida y segura. "
-                                    "Antes de comenzar, ¿estás de acuerdo en llevar a cabo este proceso de autenticación? "
-                                    "Por favor, elige una opción a continuación."
-                                )
+                                "text": "¿Confirmas tu registro?"
+                            },
+                            "footer": {
+                                "text": "Selecciona una de las opciones"
                             },
                             "action": {
                                 "buttons": [
                                     {
                                         "type": "reply",
                                         "reply": {
-                                            "id": "si_button",
-                                            "title": "Sí"
+                                            "id": "btnsi",
+                                            "title": "Si"
                                         }
                                     },
                                     {
                                         "type": "reply",
                                         "reply": {
-                                            "id": "no_button",
+                                            "id": "btnno",
                                             "title": "No"
+                                        }
+                                    },
+                                    {
+                                        "type": "reply",
+                                        "reply": {
+                                            "id": "btntalvez",
+                                            "title": "Tal Vez"
                                         }
                                     }
                                 ]
                             }
                         }
                     }
-                    enviar_mensajes_whatsapp(responder_mensaje, numero)
+                    enviar_mensajes_whatsapp(data, numero)
                 elif "reply" in messages:
-                    if messages["reply"]["id"] == "si_button":
-                        responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
-                        enviar_mensajes_whatsapp_texto(responder_mensaje, numero)
-                    elif messages["reply"]["id"] == "no_button":
-                        responder_mensaje = "Okey, nos vemos pronto."
-                        enviar_mensajes_whatsapp_texto(responder_mensaje, numero)
+                    reply_id = messages["reply"]["id"]
+                    if reply_id == "btnsi":
+                        responder_mensaje = "Muchas Gracias por Aceptar."
+                    elif reply_id == "btnno":
+                        responder_mensaje = "Es una Lastima."
+                    elif reply_id == "btntalvez":
+                        responder_mensaje = "Estaré a la espera."
+                    else:
+                        responder_mensaje = "Opción no reconocida."
+
+                    data = {
+                        "messaging_product": "whatsapp",
+                        "recipient_type": "individual",
+                        "to": numero,
+                        "type": "text",
+                        "text": {
+                            "preview_url": False,
+                            "body": responder_mensaje
+                        }
+                    }
+                    enviar_mensajes_whatsapp(data, numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
@@ -110,19 +130,6 @@ def enviar_mensajes_whatsapp(data, number):
         print(f"Error al enviar el mensaje: {e}")
     finally:
         connection.close()
-
-def enviar_mensajes_whatsapp_texto(texto, number):
-    data = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": number,
-        "type": "text",
-        "text": {
-            "preview_url": False,
-            "body": texto
-        }
-    }
-    enviar_mensajes_whatsapp(data, number)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
