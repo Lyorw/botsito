@@ -5,6 +5,8 @@ import json
 app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
+PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
+ACCESS_TOKEN = "EAANytZCyISKIBO8KFhSQKYTSMEZCpWe5PxEfhl9ecEp2elewqm5KLJ23Fmk0ZA4JZAANavrAvPWknpGhf5EiwevBl9kTxIoPXLtZC6lwcNX4YU6I0l93T9uelC3nikXZA0ITZB6LXtlCIVYBDu3jO408Q3OaP110f5VXn5rndF8n1qeYZCZBDSaTl0pEx8ZBUZCRXivDVOZAqZCDA4SOERALxyq8Pfidkqw8ZD"
 
 @app.route('/')
 def index():
@@ -42,8 +44,8 @@ def recibir_mensajes(req):
                 text = messages["text"]["body"]
                 numero = messages["from"]
 
-                if "boton" in text:
-                    data = {
+                if "😊" not in text:
+                    responder_mensaje = {
                         "messaging_product": "whatsapp",
                         "recipient_type": "individual",
                         "to": numero,
@@ -51,47 +53,37 @@ def recibir_mensajes(req):
                         "interactive": {
                             "type": "button",
                             "body": {
-                                "text": "¿Confirmas tu registro?"
-                            },
-                            "footer": {
-                                "text": "Selecciona una de las opciones"
+                                "text": (
+                                    "Hola, escoge una opción:"
+                                )
                             },
                             "action": {
                                 "buttons": [
                                     {
                                         "type": "reply",
                                         "reply": {
-                                            "id": "btnsi",
-                                            "title": "Si"
+                                            "id": "si_button",
+                                            "title": "Sí"
                                         }
                                     },
                                     {
                                         "type": "reply",
                                         "reply": {
-                                            "id": "btnno",
+                                            "id": "no_button",
                                             "title": "No"
-                                        }
-                                    },
-                                    {
-                                        "type": "reply",
-                                        "reply": {
-                                            "id": "btntalvez",
-                                            "title": "Tal Vez"
                                         }
                                     }
                                 ]
                             }
                         }
                     }
-                    enviar_mensajes_whatsapp(data, numero)
+                    enviar_mensajes_whatsapp(responder_mensaje, numero)
                 elif "reply" in messages:
                     reply_id = messages["reply"]["id"]
-                    if reply_id == "btnsi":
-                        responder_mensaje = "Muchas Gracias por Aceptar."
-                    elif reply_id == "btnno":
-                        responder_mensaje = "Es una Lastima."
-                    elif reply_id == "btntalvez":
-                        responder_mensaje = "Estaré a la espera."
+                    if reply_id == "si_button":
+                        responder_mensaje = "RIP"
+                    elif reply_id == "no_button":
+                        responder_mensaje = "equisde"
                     else:
                         responder_mensaje = "Opción no reconocida."
 
@@ -117,13 +109,13 @@ def enviar_mensajes_whatsapp(data, number):
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": "Bearer EAANytZCyISKIBO8KFhSQKYTSMEZCpWe5PxEfhl9ecEp2elewqm5KLJ23Fmk0ZA4JZAANavrAvPWknpGhf5EiwevBl9kTxIoPXLtZC6lwcNX4YU6I0l93T9uelC3nikXZA0ITZB6LXtlCIVYBDu3jO408Q3OaP110f5VXn5rndF8n1qeYZCZBDSaTl0pEx8ZBUZCRXivDVOZAqZCDA4SOERALxyq8Pfidkqw8ZD"
+        "Authorization": f"Bearer {ACCESS_TOKEN}"
     }
 
     connection = http.client.HTTPSConnection("graph.facebook.com")
 
     try:
-        connection.request("POST", "/v20.0/421866537676248/messages", data, headers)
+        connection.request("POST", f"/v20.0/{PAGE_ID}/messages", data, headers)
         response = connection.getresponse()
         print(response.status, response.reason, response.read().decode())
     except Exception as e:
