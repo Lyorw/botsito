@@ -26,10 +26,11 @@ def verificar_token(req):
     else:
         return jsonify({'error': 'Token Inválido'}), 401
 
-
 def recibir_mensajes(req):
     try:
         data = request.get_json()
+        print("Data received:", data)  # Verificar la estructura del mensaje recibido
+
         entry = data['entry'][0]
         changes = entry['changes'][0]
         value = changes['value']
@@ -41,7 +42,6 @@ def recibir_mensajes(req):
                 text = messages["text"]["body"]
                 numero = messages["from"]
 
-                # Responder con botones si el mensaje es el primero
                 if "😊" not in text:
                     responder_mensaje = {
                         "messaging_product": "whatsapp",
@@ -89,8 +89,8 @@ def recibir_mensajes(req):
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
+        print(f"Error: {e}")  # Imprimir el error para depuración
         return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
-
 
 def enviar_mensajes_whatsapp(data, number):
     data = json.dumps(data)
