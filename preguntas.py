@@ -1,8 +1,3 @@
-# preguntas.py
-
-# Variable to keep track of attempts
-intentos = {}
-
 def obtener_mensaje_bienvenida():
     return {
         "messaging_product": "whatsapp",
@@ -42,19 +37,16 @@ def manejar_respuesta_interactiva(reply_id):
     else:
         return "Opción no reconocida."
 
-def validar_nombre_apellido(text, numero):
-    global intentos
+def validar_nombre_apellido(text, numero, intentos, campo):
     if any(char.isdigit() for char in text):
-        if numero in intentos:
-            intentos[numero] += 1
+        intentos[numero] += 1
+        if intentos[numero] >= 2:
+            intentos[numero] = 0  # Reiniciar intentos
+            return obtener_mensaje_bienvenida()  # Redirigir al inicio
         else:
-            intentos[numero] = 1
-
-        if intentos[numero] > 2:
-            intentos[numero] = 0  # Reset attempts for this user
-            return obtener_mensaje_bienvenida()
-        else:
-            return f"El nombre no debe contener números, por favor vuelva a ingresar. Intento {intentos[numero]}/2"
+            return f"El {campo} no debe contener números, por favor vuelva a ingresar. Intento {intentos[numero]}/2"
     else:
-        intentos[numero] = 0  # Reset attempts on success
-        return f"Gracias, ahora ¿cuáles son tus apellidos? (Por favor, solo escribe la respuesta)"
+        if campo == "nombre":
+            return "Gracias, ahora ¿cuáles son tus apellidos? (Por favor, solo escribe la respuesta)"
+        elif campo == "apellido":
+            return "¡Perfecto! Gracias por proporcionar tus datos."

@@ -1,5 +1,3 @@
-# app.py
-
 from flask import Flask, request, jsonify
 import http.client
 import json
@@ -11,6 +9,9 @@ TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"
 ACCESS_TOKEN = "EAANytZCyISKIBO8KFhSQKYTSMEZCpWe5PxEfhl9ecEp2elewqm5KLJ23Fmk0ZA4JZAANavrAvPWknpGhf5EiwevBl9kTxIoPXLtZC6lwcNX4YU6I0l93T9uelC3nikXZA0ITZB6LXtlCIVYBDu3jO408Q3OaP110f5VXn5rndF8n1qeYZCZBDSaTl0pEx8ZBUZCRXivDVOZAqZCDA4SOERALxyq8Pfidkqw8ZD"
 
+intentos_nombre = {}
+intentos_apellido = {}
+
 @app.route('/')
 def index():
     return "Descargando virus."
@@ -19,9 +20,8 @@ def index():
 def webhook():
     if request.method == 'GET':
         return verificar_token(request)
-    elif request.method == 'POST':  # Corregido aquí
+    elif request.method == 'POST':
         return recibir_mensajes(request)
-
 
 def verificar_token(req):
     token = req.args.get('hub.verify_token')
@@ -46,11 +46,15 @@ def recibir_mensajes(req):
             messages = objeto_mensaje[0]
             text = messages.get("text", {}).get("body", "")
             numero = messages.get("from", "")
+            campo = "nombre" if numero not in intentos_nombre else "apellido"
+
+            if numero not in intentos_nombre:
+                intentos_nombre[numero] = 0
 
             if "😊" not in text:
-                respuesta = validar_nombre_apellido(text, numero)
+                respuesta = validar_nombre_apellido(text, numero, intentos_nombre, campo)
 
-                if isinstance(respuesta, dict):  # This checks if the response is the welcome message
+                if isinstance(respuesta, dict):  # Redirigir al inicio
                     respuesta["to"] = numero
                     enviar_mensajes_whatsapp(respuesta, numero)
                 else:
@@ -65,6 +69,9 @@ def recibir_mensajes(req):
                         }
                     }
                     enviar_mensajes_whatsapp(data, numero)
+
+                if campo == "nombre" and intentos_nombre[numero] == 0:
+                    intentos_apellido[numero] = 0  # Resetear intentos para el apellido
             elif messages.get('type') == 'interactive':
                 reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
                 responder_mensaje = manejar_respuesta_interactiva(reply_id)
