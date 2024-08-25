@@ -41,31 +41,56 @@ def recibir_mensajes(req):
                 text = messages["text"]["body"]
                 numero = messages["from"]
 
-                # Responder con el mensaje especificado
-                responder_mensaje = (
-                    "😊 ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. "
-                    "Estoy aquí para ayudarte a completar el proceso de manera rápida y segura. "
-                    "Antes de comenzar, ¿estás de acuerdo en llevar a cabo este proceso de autenticación? "
-                    "Por favor, responde con 'Sí' para continuar o 'No' si prefieres no seguir adelante."
-                )
-                enviar_mensajes_whatsapp(responder_mensaje, numero)
+                # Responder con botones si el mensaje es el primero
+                if "😊" not in text:
+                    responder_mensaje = {
+                        "messaging_product": "whatsapp",
+                        "recipient_type": "individual",
+                        "to": numero,
+                        "type": "interactive",
+                        "interactive": {
+                            "type": "button",
+                            "body": {
+                                "text": (
+                                    "😊 ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. "
+                                    "Estoy aquí para ayudarte a completar el proceso de manera rápida y segura. "
+                                    "Antes de comenzar, ¿estás de acuerdo en llevar a cabo este proceso de autenticación? "
+                                    "Por favor, elige una opción a continuación."
+                                )
+                            },
+                            "action": {
+                                "buttons": [
+                                    {
+                                        "type": "reply",
+                                        "reply": {
+                                            "id": "si_button",
+                                            "title": "Sí"
+                                        }
+                                    },
+                                    {
+                                        "type": "reply",
+                                        "reply": {
+                                            "id": "no_button",
+                                            "title": "No"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                    enviar_mensajes_whatsapp(responder_mensaje, numero)
+                elif text.lower() == "sí":
+                    responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
+                    enviar_mensajes_whatsapp_texto(responder_mensaje, numero)
+                elif text.lower() == "no":
+                    responder_mensaje = "Okey, nos vemos pronto."
+                    enviar_mensajes_whatsapp_texto(responder_mensaje, numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
         return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
 
-def enviar_mensajes_whatsapp(texto, number):
-    data = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": number,
-        "type": "text",
-        "text": {
-            "preview_url": False,
-            "body": texto
-        }
-    }
-
+def enviar_mensajes_whatsapp(data, number):
     # Convertir el diccionario a formato JSON
     data = json.dumps(data)
 
@@ -84,6 +109,19 @@ def enviar_mensajes_whatsapp(texto, number):
         print(f"Error al enviar el mensaje: {e}")
     finally:
         connection.close()
+
+def enviar_mensajes_whatsapp_texto(texto, number):
+    data = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": number,
+        "type": "text",
+        "text": {
+            "preview_url": False,
+            "body": texto
+        }
+    }
+    enviar_mensajes_whatsapp(data, number)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
