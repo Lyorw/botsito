@@ -40,9 +40,9 @@ def recibir_mensajes(req):
 
         if objeto_mensaje:
             messages = objeto_mensaje[0]
-            if "text" in messages:
-                text = messages["text"]["body"]
-                numero = messages["from"]
+            if messages.get('type') == 'text':
+                text = messages.get("text", {}).get("body", "")
+                numero = messages.get("from", "")
 
                 if "😊" not in text:
                     responder_mensaje = {
@@ -53,9 +53,7 @@ def recibir_mensajes(req):
                         "interactive": {
                             "type": "button",
                             "body": {
-                                "text": (
-                                    "Hola, escoge una opción:"
-                                )
+                                "text": "Hola, escoge una opción:"
                             },
                             "action": {
                                 "buttons": [
@@ -78,26 +76,28 @@ def recibir_mensajes(req):
                         }
                     }
                     enviar_mensajes_whatsapp(responder_mensaje, numero)
-                elif "reply" in messages:
-                    reply_id = messages["reply"]["id"]
-                    if reply_id == "si_button":
-                        responder_mensaje = "RIP"
-                    elif reply_id == "no_button":
-                        responder_mensaje = "equisde"
-                    else:
-                        responder_mensaje = "Opción no reconocida."
+            elif messages.get('type') == 'interactive':
+                reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
+                numero = messages.get("from", "")
 
-                    data = {
-                        "messaging_product": "whatsapp",
-                        "recipient_type": "individual",
-                        "to": numero,
-                        "type": "text",
-                        "text": {
-                            "preview_url": False,
-                            "body": responder_mensaje
-                        }
+                if reply_id == "si_button":
+                    responder_mensaje = "RIP"
+                elif reply_id == "no_button":
+                    responder_mensaje = "equisde"
+                else:
+                    responder_mensaje = "Opción no reconocida."
+
+                data = {
+                    "messaging_product": "whatsapp",
+                    "recipient_type": "individual",
+                    "to": numero,
+                    "type": "text",
+                    "text": {
+                        "preview_url": False,
+                        "body": responder_mensaje
                     }
-                    enviar_mensajes_whatsapp(data, numero)
+                }
+                enviar_mensajes_whatsapp(data, numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
