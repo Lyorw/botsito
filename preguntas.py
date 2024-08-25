@@ -8,11 +8,9 @@ ESTADOS = {
     "FINAL": "final"
 }
 
-# Inicializa el estado del usuario
 def inicializar_estado_usuario():
-    return ESTADOS["INICIO"]
+    return {"estado": ESTADOS["INICIO"], "intentos": 0}
 
-# Cambia el estado del usuario
 def cambiar_estado_usuario(usuario_estado, nuevo_estado):
     usuario_estado["estado"] = nuevo_estado
 
@@ -49,7 +47,8 @@ def obtener_mensaje_bienvenida():
 
 def manejar_respuesta_interactiva(reply_id, usuario_estado):
     estado_actual = usuario_estado.get("estado", ESTADOS["INICIO"])
-    
+    print(f"Estado actual: {estado_actual}")  # Mensaje de depuración
+
     if estado_actual == ESTADOS["INICIO"]:
         if reply_id == "si_button":
             cambiar_estado_usuario(usuario_estado, ESTADOS["NOMBRE"])
@@ -71,6 +70,8 @@ def manejar_respuesta_interactiva(reply_id, usuario_estado):
     return "Estado no reconocido."
 
 def validar_nombre_apellido(input_text, usuario_estado, tipo):
+    print(f"Validando {tipo}: {input_text}")  # Mensaje de depuración
+    
     if any(char.isdigit() for char in input_text):
         intentos = usuario_estado.get("intentos", 0) + 1
         usuario_estado["intentos"] = intentos

@@ -52,17 +52,21 @@ def recibir_mensajes(req):
                 intentos_apellido[numero] = 0
 
             if intentos_nombre[numero] < 2:  # Pregunta de nombre
-                intentos_nombre[numero] += 1
                 respuesta, correcto = validar_nombre_apellido(text, intentos_nombre[numero], "nombre")
-                if correcto and "nombre" in respuesta.lower():
-                    intentos_nombre[numero] = 2  # Bloquear la pregunta de nombre
-
+                if correcto:
+                    if "nombre" in respuesta.lower():
+                        intentos_nombre[numero] = 2  # Bloquear la pregunta de nombre
+                        respuesta = "Gracias, ahora ¿cuáles son tus apellidos?"
+                else:
+                    respuesta = respuesta
+                
             elif intentos_apellido[numero] < 2:  # Pregunta de apellido
-                intentos_apellido[numero] += 1
                 respuesta, correcto = validar_nombre_apellido(text, intentos_apellido[numero], "apellido")
-                if correcto and "¡perfecto!" in respuesta.lower():
+                if correcto:
+                    respuesta = "¡Perfecto! Gracias por completar el formulario."
                     intentos_apellido[numero] = 2  # Bloquear la pregunta de apellido
-                    respuesta = "Gracias por completar el formulario."  # Mensaje final
+                else:
+                    respuesta = respuesta
 
             else:  # Redirigir al inicio después de los intentos fallidos
                 respuesta = obtener_mensaje_bienvenida()
