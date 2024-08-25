@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 import http.client
 import json
 
@@ -9,8 +9,7 @@ TOKEN_ANDERCODE = "ANDERCODE"
 
 @app.route('/')
 def index():
-    # Aquí puedes renderizar una página si lo deseas, por ahora devuelve un mensaje simple
-    return "Webhook activo y esperando mensajes."
+    return "Descargando virus."
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
@@ -42,9 +41,14 @@ def recibir_mensajes(req):
                 text = messages["text"]["body"]
                 numero = messages["from"]
 
-                # Responder "chau" si el mensaje contiene "equisde"
-                if "equisde" in text.lower():
-                    enviar_mensajes_whatsapp("chau", numero)
+                # Responder con el mensaje especificado
+                responder_mensaje = (
+                    "😊 ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. "
+                    "Estoy aquí para ayudarte a completar el proceso de manera rápida y segura. "
+                    "Antes de comenzar, ¿estás de acuerdo en llevar a cabo este proceso de autenticación? "
+                    "Por favor, responde con 'Sí' para continuar o 'No' si prefieres no seguir adelante."
+                )
+                enviar_mensajes_whatsapp(responder_mensaje, numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
