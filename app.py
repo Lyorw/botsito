@@ -4,7 +4,6 @@ import json
 
 app = Flask(__name__)
 
-# Token de verificación para la configuración
 TOKEN_ANDERCODE = "ANDERCODE"
 
 @app.route('/')
@@ -41,7 +40,6 @@ def recibir_mensajes(req):
                 text = messages["text"]["body"]
                 numero = messages["from"]
 
-                # Responder con botones si el mensaje es el primero
                 if "😊" not in text:
                     responder_mensaje = {
                         "messaging_product": "whatsapp",
@@ -92,7 +90,6 @@ def recibir_mensajes(req):
         return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
 
 def enviar_mensajes_whatsapp(data, number):
-    # Convertir el diccionario a formato JSON
     data = json.dumps(data)
 
     headers = {
