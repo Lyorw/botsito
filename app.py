@@ -26,6 +26,7 @@ def verificar_token(req):
     else:
         return jsonify({'error': 'Token Inválido'}), 401
 
+
 def recibir_mensajes(req):
     try:
         data = request.get_json()
@@ -40,6 +41,7 @@ def recibir_mensajes(req):
                 text = messages["text"]["body"]
                 numero = messages["from"]
 
+                # Responder con botones si el mensaje es el primero
                 if "😊" not in text:
                     responder_mensaje = {
                         "messaging_product": "whatsapp",
@@ -50,7 +52,7 @@ def recibir_mensajes(req):
                             "type": "button",
                             "body": {
                                 "text": (
-                                    "😊 ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. "
+                                    "😊S ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. "
                                     "Estoy aquí para ayudarte a completar el proceso de manera rápida y segura. "
                                     "Antes de comenzar, ¿estás de acuerdo en llevar a cabo este proceso de autenticación? "
                                     "Por favor, elige una opción a continuación."
@@ -88,6 +90,7 @@ def recibir_mensajes(req):
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
         return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
+
 
 def enviar_mensajes_whatsapp(data, number):
     data = json.dumps(data)
