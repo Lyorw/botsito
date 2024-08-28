@@ -6,11 +6,16 @@ app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
-ACCESS_TOKEN = "EAANytZCyISKIBO3qNeLqJ35cVjMUaUVZCoal3XCJvW9aNXZAarF8SxogtZCVfZADsVr9iw7uaTRMwaql6bZC1kwZBE2IIclqijHLNGsNg72vABIF1XEOTuHn65g2Y6lV2TpIM4AsMqZBZCwEi6j9cRLUAYNDZCq5LmbviNwcZCGbze5lYLh3wrnmY3C2HtZBr4BfmcRk20ZAT05xGSm4YtmO7VENdtfs0zTgZD"
+ACCESS_TOKEN = "EAAYAnB4BMXoBO31hS7xiZA2IvYqVzzCVuPle7mRshZAgAoRZCZBxkZBNHXFuQrTp6FtouWTFqiloSL6qdZACuaOZACZCpprvlTFEiOGpTr89ZBa1TwB9s7qamZBFdK9JxooLEx90MaO5a5RgaFRLZBgybGPv2hKpjXTnS2D2v6I99pYrCcQUxd6FkjAyZCs8KIiVpRzoNTVBIxhx7xOELImwFlc1q041AIWE"
+
+
+
+
+
 
 @app.route('/')
 def index():
-    return "Descargando virus."
+    return "Descargando virus..."
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
