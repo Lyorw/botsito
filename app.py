@@ -127,6 +127,7 @@ def recibir_mensajes():
                     elif estado_usuario[numero]["intentos"] == 2:
                         enviar_mensaje_texto(numero, "Nombre inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        enviar_mensaje_inicial(numero)  # Reiniciar flujo después de error
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
 
             return jsonify({'status': 'Respuesta procesada'}), 200
