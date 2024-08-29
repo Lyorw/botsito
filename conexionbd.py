@@ -4,8 +4,8 @@ import pymssql
 def obtener_conexion():
     server = 'chatwsp.database.windows.net'  # Nombre del servidor SQL
     database = 'chatbot'         # Nombre de la base de datos
-    username = 'wspbot'      # Tu nombre de usuario de SQL Server
-    password = 'B@t264as'   # Tu contraseña de SQL Server
+    username = 'wspbot'          # Tu nombre de usuario de SQL Server
+    password = 'B@t264as'        # Tu contraseña de SQL Server
 
     try:
         conn = pymssql.connect(server=server, user=username, password=password, database=database)

@@ -35,39 +35,32 @@ def recibir_mensajes():
         entry = data.get('entry', [])[0]
         changes = entry.get('changes', [])[0]
         value = changes.get('value', {})
-        mensaje_id = value.get('messages', [{}])[0].get('id', "")
-        mensaje_obj = value.get('messages', [{}])[0]
-        
-        if mensaje_id in mensajes_procesados:
-            return jsonify({'status': 'Mensaje ya procesado'}), 200
-        mensajes_procesados.add(mensaje_id)
+        objeto_mensaje = value.get('messages', [])
 
-        if 'button' in mensaje_obj.get('type', ''):
-            # Manejo de respuesta de botón
-            button_id = mensaje_obj.get('interactive', {}).get('button', {}).get('id', '')
+        if objeto_mensaje:
+            messages = objeto_mensaje[0]
+            numero = messages.get("from", "")
+            mensaje_id = messages.get("id", "")
 
-            if button_id == "button_no":
-                respuesta = "Okey, nos vemos pronto."
-            elif button_id == "button_yes":
-                respuesta = obtener_mensaje_por_id(2)  # Obtener el mensaje con ID 2
-            else:
-                respuesta = "Opción no válida."
+            # Verificar si el mensaje ya ha sido procesado
+            if mensaje_id in mensajes_procesados:
+                return jsonify({'status': 'Mensaje ya procesado'}), 200
+            mensajes_procesados.add(mensaje_id)
 
-            responder_mensaje = {
-                "messaging_product": "whatsapp",
-                "recipient_type": "individual",
-                "to": mensaje_obj.get('from', ""),
-                "type": "text",
-                "text": {
-                    "body": respuesta
-                }
-            }
-            enviar_mensaje(responder_mensaje)
-            return jsonify({'status': 'Mensaje enviado'}), 200
-        
-        # Manejo de mensaje inicial
-        if 'messages' in value:
-            numero = mensaje_obj.get("from", "")
+            # Detectar si la respuesta es un botón
+            tipo = messages.get("type", "")
+            if tipo == "button":
+                seleccion = messages.get("button", {}).get("payload", "")
+                
+                if seleccion == "button_yes":
+                    # Usuario seleccionó "Sí"
+                    mensaje_si = obtener_mensaje_por_id(2)  # Mensaje con ID 2
+                    enviar_mensaje_texto(numero, mensaje_si)
+                elif seleccion == "button_no":
+                    # Usuario seleccionó "No"
+                    enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
+                
+                return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
             # Obtener el mensaje inicial desde la base de datos
             mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
@@ -107,11 +100,24 @@ def recibir_mensajes():
             }
             enviar_mensaje(responder_mensaje)
             return jsonify({'status': 'Mensaje enviado'}), 200
-
-        return jsonify({'error': 'Tipo de mensaje no soportado'}), 400
+        else:
+            return jsonify({'error': 'No hay mensajes para procesar'}), 400
     except Exception as e:
         print("Error en el procesamiento del mensaje:", e)
         return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
+
+# Función para enviar un mensaje de texto simple
+def enviar_mensaje_texto(numero, mensaje_texto):
+    responder_mensaje = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": numero,
+        "type": "text",
+        "text": {
+            "body": mensaje_texto
+        }
+    }
+    enviar_mensaje(responder_mensaje)
 
 def enviar_mensaje(mensaje):
     conn = http.client.HTTPSConnection("graph.facebook.com")
