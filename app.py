@@ -94,7 +94,6 @@ def recibir_mensajes():
                     elif estado_usuario[numero]["intentos"] == 2:
                         enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
-                        enviar_mensaje_inicial(numero)
                 else:
                     enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
                     estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
