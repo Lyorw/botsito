@@ -35,17 +35,39 @@ def recibir_mensajes():
         entry = data.get('entry', [])[0]
         changes = entry.get('changes', [])[0]
         value = changes.get('value', {})
-        objeto_mensaje = value.get('messages', [])
+        mensaje_id = value.get('messages', [{}])[0].get('id', "")
+        mensaje_obj = value.get('messages', [{}])[0]
+        
+        if mensaje_id in mensajes_procesados:
+            return jsonify({'status': 'Mensaje ya procesado'}), 200
+        mensajes_procesados.add(mensaje_id)
 
-        if objeto_mensaje:
-            messages = objeto_mensaje[0]
-            numero = messages.get("from", "")
-            mensaje_id = messages.get("id", "")
+        if 'button' in mensaje_obj.get('type', ''):
+            # Manejo de respuesta de botón
+            button_id = mensaje_obj.get('interactive', {}).get('button', {}).get('id', '')
 
-            # Verificar si el mensaje ya ha sido procesado
-            if mensaje_id in mensajes_procesados:
-                return jsonify({'status': 'Mensaje ya procesado'}), 200
-            mensajes_procesados.add(mensaje_id)
+            if button_id == "button_no":
+                respuesta = "Okey, nos vemos pronto."
+            elif button_id == "button_yes":
+                respuesta = obtener_mensaje_por_id(2)  # Obtener el mensaje con ID 2
+            else:
+                respuesta = "Opción no válida."
+
+            responder_mensaje = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": mensaje_obj.get('from', ""),
+                "type": "text",
+                "text": {
+                    "body": respuesta
+                }
+            }
+            enviar_mensaje(responder_mensaje)
+            return jsonify({'status': 'Mensaje enviado'}), 200
+        
+        # Manejo de mensaje inicial
+        if 'messages' in value:
+            numero = mensaje_obj.get("from", "")
 
             # Obtener el mensaje inicial desde la base de datos
             mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
@@ -85,8 +107,8 @@ def recibir_mensajes():
             }
             enviar_mensaje(responder_mensaje)
             return jsonify({'status': 'Mensaje enviado'}), 200
-        else:
-            return jsonify({'error': 'No hay mensajes para procesar'}), 400
+
+        return jsonify({'error': 'Tipo de mensaje no soportado'}), 400
     except Exception as e:
         print("Error en el procesamiento del mensaje:", e)
         return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
