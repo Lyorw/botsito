@@ -6,10 +6,7 @@ app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
-ACCESS_TOKEN = "EAAYAnB4BMXoBO31hS7xiZA2IvYqVzzCVuPle7mRshZAgAoRZCZBxkZBNHXFuQrTp6FtouWTFqiloSL6qdZACuaOZACZCpprvlTFEiOGpTr89ZBa1TwB9s7qamZBFdK9JxooLEx90MaO5a5RgaFRLZBgybGPv2hKpjXTnS2D2v6I99pYrCcQUxd6FkjAyZCs8KIiVpRzoNTVBIxhx7xOELImwFlc1q041AIWE"
-
-
-
+ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
 
 
 
@@ -132,3 +129,9 @@ def enviar_mensajes_whatsapp(data, number):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
+
+
+
+
+
+
