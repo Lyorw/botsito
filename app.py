@@ -12,6 +12,7 @@ ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62N
 
 mensajes_procesados = set()
 intentos_por_usuario = {}
+esperando_respuesta = {}
 
 @app.route('/')
 def index():
@@ -53,7 +54,13 @@ def recibir_mensajes():
                 enviar_mensaje_texto(numero, "Usuario ya está registrado")
                 return jsonify({'status': 'Usuario registrado'}), 200
 
-            # Si no está registrado, continuar con la lógica de preguntas y respuestas
+            # Si no está registrado, manejar el flujo inicial
+            if numero not in esperando_respuesta or not esperando_respuesta[numero]:
+                enviar_mensaje_inicial(numero)
+                esperando_respuesta[numero] = True
+                return jsonify({'status': 'Mensaje inicial enviado'}), 200
+
+            # Continuar solo si se ha seleccionado un botón
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
@@ -63,11 +70,18 @@ def recibir_mensajes():
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
                     intentos_por_usuario[numero] = 0
+                    esperando_respuesta[numero] = False  # Ya no está esperando una respuesta de botón
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
+                    esperando_respuesta[numero] = False
                 
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
+            # Si llega un mensaje de texto cuando se espera un botón, ignorarlo
+            if esperando_respuesta.get(numero, False):
+                return jsonify({'status': 'Esperando respuesta a botón'}), 200
+
+            # Lógica de validación de correo
             if validar_correo(texto_usuario):
                 enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
                 intentos_por_usuario.pop(numero, None)
