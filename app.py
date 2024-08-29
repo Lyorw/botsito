@@ -1,13 +1,42 @@
 from flask import Flask, request, jsonify
 import http.client
 import json
-from conexionbd import obtener_mensaje_por_id  # Importar la función para obtener el mensaje desde la BD
+import pymssql
 
 app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
 ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
+
+# Función para obtener el mensaje de la base de datos
+def obtener_mensaje_bd():
+    server = 'chatwsp.database.windows.net'
+    database = 'chatbot'
+    username = 'wspbot'
+    password = 'B@t264as'
+
+    try:
+        # Establecer conexión con la base de datos
+        conn = pymssql.connect(server=server, user=username, password=password, database=database)
+        cursor = conn.cursor()
+
+        # Ejecutar la consulta
+        cursor.execute("SELECT formulario FROM Preguntas WHERE ID = 1")
+        row = cursor.fetchone()
+
+        if row:
+            return row[0]
+        else:
+            return "No se encontró el mensaje en la base de datos."
+
+    except pymssql.Error as e:
+        print(f"Error al conectar a la base de datos: {e}")
+        return "Error al obtener el mensaje de la base de datos."
+    
+    finally:
+        if conn:
+            conn.close()
 
 @app.route('/')
 def index():
@@ -46,10 +75,9 @@ def recibir_mensajes(req):
                 numero = messages.get("from", "")
 
                 if "😊" not in text:
-                    # Obtener el mensaje desde la base de datos
-                    mensaje_db = obtener_mensaje_por_id(1)
-                    if not mensaje_db:
-                        mensaje_db = "No se pudo obtener el mensaje de la base de datos."
+                    # Obtener mensaje desde la base de datos
+                    mensaje_bd = obtener_mensaje_bd()
+                    print(f"Mensaje obtenido de la base de datos: {mensaje_bd}")
 
                     responder_mensaje = {
                         "messaging_product": "whatsapp",
@@ -59,7 +87,7 @@ def recibir_mensajes(req):
                         "interactive": {
                             "type": "button",
                             "body": {
-                                "text": mensaje_db
+                                "text": mensaje_bd
                             },
                             "action": {
                                 "buttons": [
