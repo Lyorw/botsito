@@ -49,9 +49,11 @@ def recibir_mensajes():
                 return jsonify({'status': 'Mensaje ya procesado'}), 200
             mensajes_procesados.add(mensaje_id)
 
-            # Restablecer estado en cada nueva interacción
+            # Inicialización del estado del usuario si no existe
             if numero not in estado_usuario:
                 estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False, "recordatorio_enviado": False}
+                enviar_mensaje_inicial(numero)  # Enviar mensaje de bienvenida con botones
+                return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
             # Verificar si el usuario ya está registrado
             if verificar_usuario_registrado(numero):
