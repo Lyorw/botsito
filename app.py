@@ -85,14 +85,14 @@ def recibir_mensajes():
             # Lógica de validación de correo
             if not validar_correo(texto_usuario):
                 intentos = intentos_por_usuario.get(numero, 0) + 1
+                intentos_por_usuario[numero] = intentos  # Actualizar el contador de intentos
                 if intentos < 2:
                     enviar_mensaje_texto(numero, f"Correo inválido, por favor vuelva a ingresar. Intento {intentos}/2")
-                    intentos_por_usuario[numero] = intentos
                 else:
                     enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
-                    intentos_por_usuario[numero] = 0  # Reiniciar los intentos
                     enviar_mensaje_inicial(numero)
                     esperando_respuesta[numero] = True  # Esperar selección de botones nuevamente
+                    intentos_por_usuario[numero] = 0  # Reiniciar los intentos
             else:
                 enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
                 intentos_por_usuario.pop(numero, None)  # Borrar intentos después de éxito
