@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import http.client
 import json
 import re
-from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta
+from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado
 
 app = Flask(__name__)
 
@@ -48,6 +48,12 @@ def recibir_mensajes():
                 return jsonify({'status': 'Mensaje ya procesado'}), 200
             mensajes_procesados.add(mensaje_id)
 
+            # Verificar si el usuario ya está registrado
+            if verificar_usuario_registrado(numero):
+                enviar_mensaje_texto(numero, "Usuario ya está registrado")
+                return jsonify({'status': 'Usuario registrado'}), 200
+
+            # Si no está registrado, continuar con la lógica de preguntas y respuestas
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
@@ -56,7 +62,7 @@ def recibir_mensajes():
                 if seleccion == "button_yes":
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
-                    intentos_por_usuario[numero] = 0  # Reiniciar intentos en caso de éxito
+                    intentos_por_usuario[numero] = 0
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                 

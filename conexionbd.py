@@ -55,3 +55,21 @@ def obtener_alternativas_por_id_pregunta(id_pregunta):
         return []
     finally:
         conn.close()
+
+# Función para verificar si el número de teléfono está registrado
+def verificar_usuario_registrado(numero):
+    conn = obtener_conexion()
+    if conn is None:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT celular FROM usuario WHERE celular = %s", (numero,))
+        row = cursor.fetchone()
+        
+        return row is not None
+    except pymssql.Error as e:
+        print("Error al verificar usuario registrado:", e)
+        return False
+    finally:
+        conn.close()
