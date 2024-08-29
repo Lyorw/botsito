@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import http.client
 import json
-from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta  # Importar funciones
+from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta  # Importar las funciones para obtener mensajes y alternativas desde la BD
 
 app = Flask(__name__)
 
@@ -34,9 +34,9 @@ def recibir_mensajes(req):
         data = request.get_json()
         print("Data received:", data)  # Verificar la estructura del mensaje recibido
 
-        entry = data['entry'][0]
-        changes = entry['changes'][0]
-        value = changes['value']
+        entry = data.get('entry', [])[0]
+        changes = entry.get('changes', [])[0]
+        value = changes.get('value', {})
         objeto_mensaje = value.get('messages', [])
 
         if objeto_mensaje:
@@ -51,21 +51,16 @@ def recibir_mensajes(req):
                     if not mensaje_db:
                         mensaje_db = "No se pudo obtener el mensaje de la base de datos."
 
-                    # Obtener las alternativas desde la base de datos
-                    alternativas_db = obtener_alternativas_por_id_pregunta(1)
-                    if not alternativas_db:
-                        alternativas_db = ["Sí", "No"]  # Alternativas por defecto en caso de error
-
-                    # Construir los botones con las alternativas
-                    botones = [
+                    alternativas = obtener_alternativas_por_id_pregunta(1)
+                    buttons = [
                         {
                             "type": "reply",
                             "reply": {
-                                "id": f"button_{i+1}",
+                                "id": f"button_{i}",
                                 "title": alternativa
                             }
                         }
-                        for i, alternativa in enumerate(alternativas_db)
+                        for i, alternativa in enumerate(alternativas)
                     ]
 
                     responder_mensaje = {
@@ -79,7 +74,7 @@ def recibir_mensajes(req):
                                 "text": mensaje_db
                             },
                             "action": {
-                                "buttons": botones
+                                "buttons": buttons
                             }
                         }
                     }
@@ -88,10 +83,8 @@ def recibir_mensajes(req):
                 reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
                 numero = messages.get("from", "")
 
-                if reply_id.startswith("button_1"):
+                if reply_id.startswith("button_"):
                     responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
-                elif reply_id.startswith("button_2"):
-                    responder_mensaje = "Okey, nos vemos pronto."
                 else:
                     responder_mensaje = "Opción no reconocida."
 
@@ -125,7 +118,8 @@ def enviar_mensajes_whatsapp(data, number):
     try:
         connection.request("POST", f"/v20.0/{PAGE_ID}/messages", data, headers)
         response = connection.getresponse()
-        print(response.status, response.reason, response.read().decode())
+        response_data = response.read().decode()
+        print(response.status, response.reason, response_data)
     except Exception as e:
         print(f"Error al enviar el mensaje: {e}")
     finally:
