@@ -11,7 +11,6 @@ PAGE_ID = "421866537676248"
 ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
 
 mensajes_procesados = set()
-intentos_por_usuario = {}
 estado_usuario = {}
 
 @app.route('/')
@@ -56,12 +55,11 @@ def recibir_mensajes():
 
             # Inicialización del estado del usuario si no existe
             if numero not in estado_usuario:
-                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False}
+                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False}
 
             # Manejar el flujo inicial
-            if not estado_usuario[numero]["esperando_correo"]:
+            if not estado_usuario[numero]["autenticacion_confirmada"]:
                 enviar_mensaje_inicial(numero)
-                estado_usuario[numero] = {"intentos": 0, "esperando_correo": True}
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
             # Continuar solo si se ha seleccionado un botón
@@ -74,12 +72,13 @@ def recibir_mensajes():
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
                     estado_usuario[numero]["esperando_correo"] = True
+                    estado_usuario[numero]["autenticacion_confirmada"] = True
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                     estado_usuario.pop(numero, None)  # Eliminar estado para reiniciar
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Lógica de validación de correo
+            # Lógica de validación de correo solo si está esperando correo
             if estado_usuario[numero]["esperando_correo"]:
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos"] += 1
