@@ -1,14 +1,13 @@
 from flask import Flask, request, jsonify
 import http.client
 import json
+from conexionbd import obtener_mensaje_por_id  # Importar la función para obtener el mensaje desde la BD
 
 app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
 ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
-
-
 
 @app.route('/')
 def index():
@@ -47,6 +46,11 @@ def recibir_mensajes(req):
                 numero = messages.get("from", "")
 
                 if "😊" not in text:
+                    # Obtener el mensaje desde la base de datos
+                    mensaje_db = obtener_mensaje_por_id(1)
+                    if not mensaje_db:
+                        mensaje_db = "No se pudo obtener el mensaje de la base de datos."
+
                     responder_mensaje = {
                         "messaging_product": "whatsapp",
                         "recipient_type": "individual",
@@ -55,9 +59,7 @@ def recibir_mensajes(req):
                         "interactive": {
                             "type": "button",
                             "body": {
-                                "text": (
-                                    "😊 ¡Hola! Bienvenido/a a nuestro chatbot de autenticación. Estoy aquí para ayudarte a completar el proceso de manera rápida y segura. Antes de comenzar, ¿estás de acuerdo en llevar a cabo este proceso de autenticación? Por favor, responde con 'Sí' para continuar o 'No' si prefieres no seguir adelante."
-                                )
+                                "text": mensaje_db
                             },
                             "action": {
                                 "buttons": [
@@ -129,9 +131,3 @@ def enviar_mensajes_whatsapp(data, number):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
-
-
-
-
-
-
