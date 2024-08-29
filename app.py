@@ -75,52 +75,16 @@ def recibir_mensajes():
                 if intentos >= 2:
                     enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
                     intentos_por_usuario.pop(numero, None)  # Reiniciar intentos después de fallar dos veces
-                    mensaje_inicial = obtener_mensaje_por_id(1)
-                    enviar_mensaje_texto(numero, mensaje_inicial)  # Reenviar mensaje inicial
+                    enviar_mensaje_inicial(numero)  # Reenviar mensaje inicial con botones
                 else:
                     enviar_mensaje_texto(numero, f"Correo inválido, por favor vuelva a ingresar. Intento {intentos}/2")
                     intentos_por_usuario[numero] = intentos
 
                 return jsonify({'status': 'Respuesta procesada'}), 200
 
-            # Obtener el mensaje inicial desde la base de datos
-            mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
-            alternativas = obtener_alternativas_por_id_pregunta(1)  # ID 1 para alternativas
-            
-            botones = [
-                {
-                    "type": "reply",
-                    "reply": {
-                        "id": "button_yes",
-                        "title": alternativas[0] if len(alternativas) > 0 else "Sí"
-                    }
-                },
-                {
-                    "type": "reply",
-                    "reply": {
-                        "id": "button_no",
-                        "title": alternativas[1] if len(alternativas) > 1 else "No"
-                    }
-                }
-            ]
-
-            responder_mensaje = {
-                "messaging_product": "whatsapp",
-                "recipient_type": "individual",
-                "to": numero,
-                "type": "interactive",
-                "interactive": {
-                    "type": "button",
-                    "body": {
-                        "text": mensaje_db
-                    },
-                    "action": {
-                        "buttons": botones
-                    }
-                }
-            }
-            enviar_mensaje(responder_mensaje)
-            return jsonify({'status': 'Mensaje enviado'}), 200
+            # Si es un mensaje de texto y no es una respuesta a botón, enviar mensaje inicial
+            enviar_mensaje_inicial(numero)
+            return jsonify({'status': 'Mensaje inicial enviado'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
     except Exception as e:
@@ -142,8 +106,47 @@ def enviar_mensaje_texto(numero, mensaje_texto):
 
 # Función para validar el formato del correo electrónico
 def validar_correo(correo):
-    patron = r'^[A-Za-z]{5,}@[A-Za-z0-9]+\.(globalhitss\.com|claro\.com\.pe)$'
+    patron = r'^[A-Za-z]{5,}@(globalhitss\.com|claro\.com\.pe)$'
     return re.match(patron, correo) is not None
+
+# Función para enviar el mensaje inicial con botones
+def enviar_mensaje_inicial(numero):
+    mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
+    alternativas = obtener_alternativas_por_id_pregunta(1)  # ID 1 para alternativas
+
+    botones = [
+        {
+            "type": "reply",
+            "reply": {
+                "id": "button_yes",
+                "title": alternativas[0] if len(alternativas) > 0 else "Sí"
+            }
+        },
+        {
+            "type": "reply",
+            "reply": {
+                "id": "button_no",
+                "title": alternativas[1] if len(alternativas) > 1 else "No"
+            }
+        }
+    ]
+
+    responder_mensaje = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": numero,
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "body": {
+                "text": mensaje_db
+            },
+            "action": {
+                "buttons": botones
+            }
+        }
+    }
+    enviar_mensaje(responder_mensaje)
 
 def enviar_mensaje(mensaje):
     conn = http.client.HTTPSConnection("graph.facebook.com")
