@@ -58,6 +58,7 @@ def recibir_mensajes():
             if numero not in esperando_respuesta or not esperando_respuesta[numero]:
                 enviar_mensaje_inicial(numero)
                 esperando_respuesta[numero] = True
+                intentos_por_usuario[numero] = 0  # Reiniciar intentos al comenzar desde el inicio
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
             # Continuar solo si se ha seleccionado un botón
@@ -69,8 +70,8 @@ def recibir_mensajes():
                 if seleccion == "button_yes":
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
-                    intentos_por_usuario[numero] = 0
-                    esperando_respuesta[numero] = False  # Ya no está esperando una respuesta de botón
+                    intentos_por_usuario[numero] = 0  # Reiniciar intentos al pasar a la pregunta de correo
+                    esperando_respuesta[numero] = False
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                     esperando_respuesta[numero] = False
@@ -84,13 +85,14 @@ def recibir_mensajes():
             # Lógica de validación de correo
             if validar_correo(texto_usuario):
                 enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
-                intentos_por_usuario.pop(numero, None)
+                intentos_por_usuario.pop(numero, None)  # Borrar intentos después de éxito
             else:
                 intentos = intentos_por_usuario.get(numero, 0) + 1
                 if intentos >= 2:
                     enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
-                    intentos_por_usuario.pop(numero, None)
+                    intentos_por_usuario[numero] = 0  # Reiniciar los intentos
                     enviar_mensaje_inicial(numero)
+                    esperando_respuesta[numero] = True  # Esperar selección de botones nuevamente
                 else:
                     enviar_mensaje_texto(numero, f"Correo inválido, por favor vuelva a ingresar. Intento {intentos}/2")
                     intentos_por_usuario[numero] = intentos
