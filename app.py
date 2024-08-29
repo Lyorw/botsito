@@ -2,41 +2,22 @@ from flask import Flask, request, jsonify
 import http.client
 import json
 import pymssql
+import requests
 
 app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
-ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
+ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1VZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
 
-# Función para obtener el mensaje de la base de datos
-def obtener_mensaje_bd():
-    server = 'chatwsp.database.windows.net'
-    database = 'chatbot'
-    username = 'wspbot'
-    password = 'B@t264as'
-
+def obtener_ip_publica():
     try:
-        # Establecer conexión con la base de datos
-        conn = pymssql.connect(server=server, user=username, password=password, database=database)
-        cursor = conn.cursor()
-
-        # Ejecutar la consulta
-        cursor.execute("SELECT formulario FROM Preguntas WHERE ID = 1")
-        row = cursor.fetchone()
-
-        if row:
-            return row[0]
-        else:
-            return "No se encontró el mensaje en la base de datos."
-
-    except pymssql.Error as e:
-        print(f"Error al conectar a la base de datos: {e}")
-        return "Error al obtener el mensaje de la base de datos."
-    
-    finally:
-        if conn:
-            conn.close()
+        response = requests.get('https://api.ipify.org')
+        ip_publica = response.text
+        return ip_publica
+    except requests.RequestException as e:
+        print(f"Error al obtener la IP pública: {e}")
+        return None
 
 @app.route('/')
 def index():
@@ -61,7 +42,7 @@ def verificar_token(req):
 def recibir_mensajes(req):
     try:
         data = request.get_json()
-        print("Data received:", data)  # Verificar la estructura del mensaje recibido
+        print("Data received:", data)
 
         entry = data['entry'][0]
         changes = entry['changes'][0]
@@ -75,7 +56,6 @@ def recibir_mensajes(req):
                 numero = messages.get("from", "")
 
                 if "😊" not in text:
-                    # Obtener mensaje desde la base de datos
                     mensaje_bd = obtener_mensaje_bd()
                     print(f"Mensaje obtenido de la base de datos: {mensaje_bd}")
 
@@ -135,7 +115,7 @@ def recibir_mensajes(req):
 
         return jsonify({'message': 'EVENT_RECEIVED'})
     except Exception as e:
-        print(f"Error: {e}")  # Imprimir el error para depuración
+        print(f"Error: {e}")
         return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
 
 def enviar_mensajes_whatsapp(data, number):
@@ -158,4 +138,9 @@ def enviar_mensajes_whatsapp(data, number):
         connection.close()
 
 if __name__ == '__main__':
+    # Obtener y mostrar la IP pública al iniciar la aplicación
+    ip_publica = obtener_ip_publica()
+    if ip_publica:
+        print(f"La IP pública de la instancia es: {ip_publica}")
+
     app.run(host='0.0.0.0', port=80, debug=True)
