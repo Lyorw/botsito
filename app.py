@@ -95,9 +95,12 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 else:
-                    enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
+                    # Obtener y enviar el mensaje con ID=3
+                    mensaje_siguiente = obtener_mensaje_por_id(3)
+                    enviar_mensaje_texto(numero, mensaje_siguiente)
                     estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
                 return jsonify({'status': 'Intento de correo procesado'}), 200
+
 
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
