@@ -44,18 +44,19 @@ def recibir_mensajes():
             mensaje_id = messages.get("id", "")
             texto_usuario = messages.get("text", {}).get("body", "").strip()
 
+            # Ignorar mensajes anteriores y solo procesar nuevos
             if mensaje_id in mensajes_procesados:
                 return jsonify({'status': 'Mensaje ya procesado'}), 200
             mensajes_procesados.add(mensaje_id)
+
+            # Restablecer estado en cada nueva interacción
+            if numero not in estado_usuario:
+                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False, "recordatorio_enviado": False}
 
             # Verificar si el usuario ya está registrado
             if verificar_usuario_registrado(numero):
                 enviar_mensaje_texto(numero, "Usuario ya está registrado")
                 return jsonify({'status': 'Usuario registrado'}), 200
-
-            # Inicialización del estado del usuario si no existe
-            if numero not in estado_usuario:
-                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False, "recordatorio_enviado": False}
 
             # Continuar solo si se ha seleccionado un botón
             if messages.get("type") == "interactive":
@@ -75,12 +76,11 @@ def recibir_mensajes():
                     estado_usuario.pop(numero, None)  # Eliminar estado para reiniciar
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Si no se ha seleccionado "Sí" o "No" y envía un mensaje de texto
+            # Si no se ha seleccionado "Sí" o "No", enviar mensaje inicial
             if not estado_usuario[numero]["autenticacion_confirmada"]:
                 if not estado_usuario[numero]["recordatorio_enviado"]:
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
-                # No hacer nada más hasta que se seleccione un botón
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
             # Lógica de validación de correo solo si está esperando correo
