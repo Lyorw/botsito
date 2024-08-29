@@ -48,9 +48,10 @@ def recibir_mensajes():
             mensajes_procesados.add(mensaje_id)
 
             # Detectar si la respuesta es un botón
-            tipo = messages.get("type", "")
-            if tipo == "button":
-                seleccion = messages.get("button", {}).get("payload", "")
+            if messages.get("type") == "interactive":
+                interactive_obj = messages.get("interactive", {})
+                button_reply = interactive_obj.get("button_reply", {})
+                seleccion = button_reply.get("id", "")
                 
                 if seleccion == "button_yes":
                     # Usuario seleccionó "Sí"
@@ -64,7 +65,7 @@ def recibir_mensajes():
 
             # Obtener el mensaje inicial desde la base de datos
             mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
-            alternativas = obtener_alternativas_por_id_pregunta(2)  # ID 2 para alternativas
+            alternativas = obtener_alternativas_por_id_pregunta(1)  # ID 1 para alternativas
             
             botones = [
                 {
