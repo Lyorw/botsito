@@ -55,7 +55,7 @@ def recibir_mensajes():
 
             # Inicialización del estado del usuario si no existe
             if numero not in estado_usuario:
-                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False}
+                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False, "recordatorio_enviado": False}
 
             # Continuar solo si se ha seleccionado un botón
             if messages.get("type") == "interactive":
@@ -69,6 +69,7 @@ def recibir_mensajes():
                     enviar_mensaje_texto(numero, mensaje_si)
                     estado_usuario[numero]["esperando_correo"] = True
                     estado_usuario[numero]["autenticacion_confirmada"] = True
+                    estado_usuario[numero]["recordatorio_enviado"] = False  # Reiniciar recordatorio
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                     estado_usuario.pop(numero, None)  # Eliminar estado para reiniciar
@@ -76,7 +77,7 @@ def recibir_mensajes():
 
             # Si no se ha seleccionado "Sí" o "No" y envía un mensaje de texto
             if not estado_usuario[numero]["autenticacion_confirmada"]:
-                if not estado_usuario[numero].get("recordatorio_enviado", False):
+                if not estado_usuario[numero]["recordatorio_enviado"]:
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
