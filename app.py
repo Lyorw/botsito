@@ -78,24 +78,22 @@ def recibir_mensajes():
                 
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Si llega un mensaje de texto cuando se espera un botón, ignorarlo
-            if esperando_respuesta.get(numero, False):
-                return jsonify({'status': 'Esperando respuesta a botón'}), 200
-
             # Lógica de validación de correo
             if not validar_correo(texto_usuario):
                 intentos = intentos_por_usuario.get(numero, 0) + 1
                 intentos_por_usuario[numero] = intentos  # Actualizar el contador de intentos
-                if intentos < 2:
-                    enviar_mensaje_texto(numero, f"Correo inválido, por favor vuelva a ingresar. Intento {intentos}/2")
-                else:
+                if intentos == 1:
+                    enviar_mensaje_texto(numero, "Correo inválido, por favor vuelva a ingresar. Intento 1/2")
+                elif intentos == 2:
                     enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
                     enviar_mensaje_inicial(numero)
                     esperando_respuesta[numero] = True  # Esperar selección de botones nuevamente
                     intentos_por_usuario[numero] = 0  # Reiniciar los intentos
-            else:
-                enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
-                intentos_por_usuario.pop(numero, None)  # Borrar intentos después de éxito
+                return jsonify({'status': 'Intento de correo procesado'}), 200
+
+            # Si el correo es válido
+            enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
+            intentos_por_usuario.pop(numero, None)  # Borrar intentos después de éxito
 
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
