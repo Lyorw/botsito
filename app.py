@@ -86,9 +86,10 @@ def recibir_mensajes():
                     enviar_mensaje_texto(numero, "Correo inválido, por favor vuelva a ingresar. Intento 1/2")
                 elif intentos == 2:
                     enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
-                    enviar_mensaje_inicial(numero)
-                    esperando_respuesta[numero] = True  # Esperar selección de botones nuevamente
                     intentos_por_usuario[numero] = 0  # Reiniciar los intentos
+                    # Reiniciar el flujo solo después del segundo intento fallido
+                    enviar_mensaje_inicial(numero)
+                    esperando_respuesta[numero] = True
                 return jsonify({'status': 'Intento de correo procesado'}), 200
 
             # Si el correo es válido
