@@ -104,6 +104,9 @@ def recibir_mensajes():
                     estado_usuario[numero] = {"intentos": 0, "esperando_nombre": True}  # Ajuste aquí
                 return jsonify({'status': 'Intento de correo procesado'}), 200
 
+
+
+
             # Nueva lógica para manejar el ID=3
             if estado_usuario[numero].get("esperando_nombre", False):
                 print(f"Debug: Esperando nombre para el número {numero}, texto ingresado: {texto_usuario}")
@@ -118,7 +121,12 @@ def recibir_mensajes():
                     elif estado_usuario[numero]["intentos"] == 2:
                         enviar_mensaje_texto(numero, "Nombre inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        # Esperar a que el usuario vuelva a iniciar el flujo desde el principio
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
+
+
+
+
 
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
