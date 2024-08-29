@@ -1,18 +1,17 @@
 from flask import Flask, request, jsonify
 import http.client
 import json
-import re  # Librería para expresiones regulares
+import re
 from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta
 
 app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
-PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
+PAGE_ID = "421866537676248"
 ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
 
-# Un conjunto para almacenar los identificadores de mensajes ya procesados
 mensajes_procesados = set()
-intentos_por_usuario = {}  # Diccionario para rastrear intentos por usuario
+intentos_por_usuario = {}
 
 @app.route('/')
 def index():
@@ -32,7 +31,7 @@ def verificar_token():
 def recibir_mensajes():
     try:
         data = request.get_json()
-        print("Data received:", data)  # Para depuración
+        print("Data received:", data)
 
         entry = data.get('entry', [])[0]
         changes = entry.get('changes', [])[0]
@@ -43,46 +42,41 @@ def recibir_mensajes():
             messages = objeto_mensaje[0]
             numero = messages.get("from", "")
             mensaje_id = messages.get("id", "")
-            texto_usuario = messages.get("text", {}).get("body", "").strip()  # Capturar el mensaje de texto del usuario
+            texto_usuario = messages.get("text", {}).get("body", "").strip()
 
-            # Verificar si el mensaje ya ha sido procesado
             if mensaje_id in mensajes_procesados:
                 return jsonify({'status': 'Mensaje ya procesado'}), 200
             mensajes_procesados.add(mensaje_id)
 
-            # Detectar si la respuesta es un botón
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
                 seleccion = button_reply.get("id", "")
                 
                 if seleccion == "button_yes":
-                    # Usuario seleccionó "Sí"
-                    mensaje_si = obtener_mensaje_por_id(2)  # Mensaje con ID 2
+                    mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
+                    intentos_por_usuario[numero] = 0  # Reiniciar intentos en caso de éxito
                 elif seleccion == "button_no":
-                    # Usuario seleccionó "No"
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                 
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Lógica para validar el correo electrónico
             if validar_correo(texto_usuario):
                 enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
-                intentos_por_usuario.pop(numero, None)  # Reiniciar intentos en caso de éxito
+                intentos_por_usuario.pop(numero, None)
             else:
                 intentos = intentos_por_usuario.get(numero, 0) + 1
                 if intentos >= 2:
                     enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
-                    intentos_por_usuario.pop(numero, None)  # Reiniciar intentos después de fallar dos veces
-                    enviar_mensaje_inicial(numero)  # Reenviar mensaje inicial con botones
+                    intentos_por_usuario.pop(numero, None)
+                    enviar_mensaje_inicial(numero)
                 else:
                     enviar_mensaje_texto(numero, f"Correo inválido, por favor vuelva a ingresar. Intento {intentos}/2")
                     intentos_por_usuario[numero] = intentos
 
                 return jsonify({'status': 'Respuesta procesada'}), 200
 
-            # Si es un mensaje de texto y no es una respuesta a botón, enviar mensaje inicial
             enviar_mensaje_inicial(numero)
             return jsonify({'status': 'Mensaje inicial enviado'}), 200
         else:
@@ -91,7 +85,6 @@ def recibir_mensajes():
         print("Error en el procesamiento del mensaje:", e)
         return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
 
-# Función para enviar un mensaje de texto simple
 def enviar_mensaje_texto(numero, mensaje_texto):
     responder_mensaje = {
         "messaging_product": "whatsapp",
@@ -104,15 +97,13 @@ def enviar_mensaje_texto(numero, mensaje_texto):
     }
     enviar_mensaje(responder_mensaje)
 
-# Función para validar el formato del correo electrónico
 def validar_correo(correo):
     patron = r'^[A-Za-z]{5,}@(globalhitss\.com|claro\.com\.pe)$'
     return re.match(patron, correo) is not None
 
-# Función para enviar el mensaje inicial con botones
 def enviar_mensaje_inicial(numero):
-    mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
-    alternativas = obtener_alternativas_por_id_pregunta(1)  # ID 1 para alternativas
+    mensaje_db = obtener_mensaje_por_id(1)
+    alternativas = obtener_alternativas_por_id_pregunta(1)
 
     botones = [
         {
