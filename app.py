@@ -83,10 +83,7 @@ def recibir_mensajes():
                 return jsonify({'status': 'Esperando respuesta a botón'}), 200
 
             # Lógica de validación de correo
-            if validar_correo(texto_usuario):
-                enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
-                intentos_por_usuario.pop(numero, None)  # Borrar intentos después de éxito
-            else:
+            if not validar_correo(texto_usuario):
                 intentos = intentos_por_usuario.get(numero, 0) + 1
                 if intentos >= 2:
                     enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
@@ -96,11 +93,11 @@ def recibir_mensajes():
                 else:
                     enviar_mensaje_texto(numero, f"Correo inválido, por favor vuelva a ingresar. Intento {intentos}/2")
                     intentos_por_usuario[numero] = intentos
+            else:
+                enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
+                intentos_por_usuario.pop(numero, None)  # Borrar intentos después de éxito
 
-                return jsonify({'status': 'Respuesta procesada'}), 200
-
-            enviar_mensaje_inicial(numero)
-            return jsonify({'status': 'Mensaje inicial enviado'}), 200
+            return jsonify({'status': 'Respuesta procesada'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
     except Exception as e:
