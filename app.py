@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import http.client
 import json
-from conexionbd import obtener_mensaje_por_id  # Importar la función para obtener el mensaje desde la BD
+from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta  # Importar funciones
 
 app = Flask(__name__)
 
@@ -51,6 +51,23 @@ def recibir_mensajes(req):
                     if not mensaje_db:
                         mensaje_db = "No se pudo obtener el mensaje de la base de datos."
 
+                    # Obtener las alternativas desde la base de datos
+                    alternativas_db = obtener_alternativas_por_id_pregunta(1)
+                    if not alternativas_db:
+                        alternativas_db = ["Sí", "No"]  # Alternativas por defecto en caso de error
+
+                    # Construir los botones con las alternativas
+                    botones = [
+                        {
+                            "type": "reply",
+                            "reply": {
+                                "id": f"button_{i+1}",
+                                "title": alternativa
+                            }
+                        }
+                        for i, alternativa in enumerate(alternativas_db)
+                    ]
+
                     responder_mensaje = {
                         "messaging_product": "whatsapp",
                         "recipient_type": "individual",
@@ -62,22 +79,7 @@ def recibir_mensajes(req):
                                 "text": mensaje_db
                             },
                             "action": {
-                                "buttons": [
-                                    {
-                                        "type": "reply",
-                                        "reply": {
-                                            "id": "si_button",
-                                            "title": "Sí"
-                                        }
-                                    },
-                                    {
-                                        "type": "reply",
-                                        "reply": {
-                                            "id": "no_button",
-                                            "title": "No"
-                                        }
-                                    }
-                                ]
+                                "buttons": botones
                             }
                         }
                     }
@@ -86,9 +88,9 @@ def recibir_mensajes(req):
                 reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
                 numero = messages.get("from", "")
 
-                if reply_id == "si_button":
+                if reply_id.startswith("button_1"):
                     responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
-                elif reply_id == "no_button":
+                elif reply_id.startswith("button_2"):
                     responder_mensaje = "Okey, nos vemos pronto."
                 else:
                     responder_mensaje = "Opción no reconocida."
