@@ -9,6 +9,9 @@ TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"  # Reemplaza con tu ID de página
 ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
 
+# Un conjunto para almacenar los identificadores de mensajes ya procesados
+mensajes_procesados = set()
+
 @app.route('/')
 def index():
     return "Descargando virus..."
@@ -37,6 +40,12 @@ def recibir_mensajes():
         if objeto_mensaje:
             messages = objeto_mensaje[0]
             numero = messages.get("from", "")
+            mensaje_id = messages.get("id", "")
+
+            # Verificar si el mensaje ya ha sido procesado
+            if mensaje_id in mensajes_procesados:
+                return jsonify({'status': 'Mensaje ya procesado'}), 200
+            mensajes_procesados.add(mensaje_id)
 
             # Obtener el mensaje inicial desde la base de datos
             mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
