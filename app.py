@@ -26,7 +26,7 @@ def verificar_token():
         return challenge
     else:
         return jsonify({'error': 'Token Inválido'}), 401
-    
+
 def validar_nombre(nombre):
     return not any(char.isdigit() for char in nombre)
 
@@ -54,7 +54,7 @@ def recibir_mensajes():
 
             # Inicialización del estado del usuario si no existe
             if numero not in estado_usuario:
-                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "esperando_nombre": False, "autenticacion_confirmada": False, "recordatorio_enviado": False}
+                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False, "recordatorio_enviado": False, "esperando_nombre": False}
                 enviar_mensaje_inicial(numero)  # Enviar mensaje de bienvenida con botones
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
@@ -88,7 +88,7 @@ def recibir_mensajes():
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Manejar intentos de validación de correo
+            # Ajustes dentro del método 'recibir_mensajes' para correo
             if estado_usuario[numero]["esperando_correo"]:
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos"] += 1
@@ -106,7 +106,8 @@ def recibir_mensajes():
 
             # Nueva lógica para manejar el ID=3
             if estado_usuario[numero].get("esperando_nombre", False):
-                if validar_nombre(texto_usuario):  # Implementa esta función para validar que no haya números
+                print(f"Debug: Esperando nombre para el número {numero}, texto ingresado: {texto_usuario}")
+                if validar_nombre(texto_usuario):  # Verifica que el nombre no tenga números
                     enviar_mensaje_texto(numero, "Nombre válido, puede continuar.")
                     estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
                     # Aquí podrías pasar al siguiente ID o proceso
@@ -194,4 +195,3 @@ def enviar_mensaje(mensaje):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
-
