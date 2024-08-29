@@ -57,11 +57,6 @@ def recibir_mensajes():
             if numero not in estado_usuario:
                 estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False}
 
-            # Manejar el flujo inicial
-            if not estado_usuario[numero]["autenticacion_confirmada"]:
-                enviar_mensaje_inicial(numero)
-                return jsonify({'status': 'Mensaje inicial enviado'}), 200
-
             # Continuar solo si se ha seleccionado un botón
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
@@ -69,6 +64,7 @@ def recibir_mensajes():
                 seleccion = button_reply.get("id", "")
                 
                 if seleccion == "button_yes":
+                    # Confirmar autenticación
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
                     estado_usuario[numero]["esperando_correo"] = True
@@ -77,6 +73,11 @@ def recibir_mensajes():
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                     estado_usuario.pop(numero, None)  # Eliminar estado para reiniciar
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
+
+            # Si no se ha seleccionado "Sí", enviar mensaje inicial
+            if not estado_usuario[numero]["autenticacion_confirmada"]:
+                enviar_mensaje_inicial(numero)
+                return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
             # Lógica de validación de correo solo si está esperando correo
             if estado_usuario[numero]["esperando_correo"]:
