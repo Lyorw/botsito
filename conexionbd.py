@@ -43,7 +43,7 @@ def obtener_alternativas_por_id_pregunta(id_pregunta):
     
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID_preguntas = %s", (id_pregunta,))
+        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID_pregunta = %s", (id_pregunta,))
         rows = cursor.fetchall()
         
         if rows:

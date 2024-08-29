@@ -13,26 +13,21 @@ ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62N
 def index():
     return "Descargando virus..."
 
-@app.route('/webhook', methods=['GET', 'POST'])
-def webhook():
-    if request.method == 'GET':
-        return verificar_token(request)
-    elif request.method == 'POST':
-        return recibir_mensajes(request)
-
-def verificar_token(req):
-    token = req.args.get('hub.verify_token')
-    challenge = req.args.get('hub.challenge')
+@app.route('/webhook', methods=['GET'])
+def verificar_token():
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge')
 
     if challenge and token == TOKEN_ANDERCODE:
         return challenge
     else:
         return jsonify({'error': 'Token Inválido'}), 401
 
-def recibir_mensajes(req):
+@app.route('/webhook', methods=['POST'])
+def recibir_mensajes():
     try:
         data = request.get_json()
-        print("Data received:", data)  # Verificar la estructura del mensaje recibido
+        print("Data received:", data)  # Para depuración
 
         entry = data.get('entry', [])[0]
         changes = entry.get('changes', [])[0]
@@ -41,90 +36,63 @@ def recibir_mensajes(req):
 
         if objeto_mensaje:
             messages = objeto_mensaje[0]
-            if messages.get('type') == 'text':
-                text = messages.get("text", {}).get("body", "")
-                numero = messages.get("from", "")
+            numero = messages.get("from", "")
 
-                if "😊" not in text:
-                    mensaje_db = obtener_mensaje_por_id(1)
-                    if not mensaje_db:
-                        mensaje_db = "No se pudo obtener el mensaje de la base de datos."
-
-                    alternativas = obtener_alternativas_por_id_pregunta(1)
-                    buttons = [
-                        {
-                            "type": "reply",
-                            "reply": {
-                                "id": f"button_{i}",
-                                "title": alternativa
-                            }
-                        }
-                        for i, alternativa in enumerate(alternativas)
-                    ]
-
-                    responder_mensaje = {
-                        "messaging_product": "whatsapp",
-                        "recipient_type": "individual",
-                        "to": numero,
-                        "type": "interactive",
-                        "interactive": {
-                            "type": "button",
-                            "body": {
-                                "text": mensaje_db
-                            },
-                            "action": {
-                                "buttons": buttons
-                            }
-                        }
+            # Obtener el mensaje inicial desde la base de datos
+            mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
+            alternativas = obtener_alternativas_por_id_pregunta(2)  # ID 2 para alternativas
+            
+            botones = [
+                {
+                    "type": "reply",
+                    "reply": {
+                        "id": "button_yes",
+                        "title": alternativas[0] if len(alternativas) > 0 else "Sí"
                     }
-                    print("Mensaje a enviar:", json.dumps(responder_mensaje, indent=2))  # Verificar el contenido del mensaje
-                    enviar_mensajes_whatsapp(responder_mensaje, numero)
-            elif messages.get('type') == 'interactive':
-                reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
-                numero = messages.get("from", "")
-
-                if reply_id.startswith("button_"):
-                    responder_mensaje = "😊 Para comenzar, ¿puedes decirme tu nombre completo? (Por favor, solo escribe la respuesta)"
-                else:
-                    responder_mensaje = "Opción no reconocida."
-
-                data = {
-                    "messaging_product": "whatsapp",
-                    "recipient_type": "individual",
-                    "to": numero,
-                    "type": "text",
-                    "text": {
-                        "preview_url": False,
-                        "body": responder_mensaje
+                },
+                {
+                    "type": "reply",
+                    "reply": {
+                        "id": "button_no",
+                        "title": alternativas[1] if len(alternativas) > 1 else "No"
                     }
                 }
-                print("Mensaje a enviar:", json.dumps(data, indent=2))  # Verificar el contenido del mensaje
-                enviar_mensajes_whatsapp(data, numero)
+            ]
 
-        return jsonify({'message': 'EVENT_RECEIVED'})
+            responder_mensaje = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": numero,
+                "type": "interactive",
+                "interactive": {
+                    "type": "button",
+                    "body": {
+                        "text": mensaje_db
+                    },
+                    "action": {
+                        "buttons": botones
+                    }
+                }
+            }
+            enviar_mensaje(responder_mensaje)
+            return jsonify({'status': 'Mensaje enviado'}), 200
+        else:
+            return jsonify({'error': 'No hay mensajes para procesar'}), 400
     except Exception as e:
-        print(f"Error: {e}")  # Imprimir el error para depuración
-        return jsonify({'message': 'EVENT_RECEIVED', 'error': str(e)})
+        print("Error en el procesamiento del mensaje:", e)
+        return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
 
-def enviar_mensajes_whatsapp(data, number):
-    data = json.dumps(data)
-
+def enviar_mensaje(mensaje):
+    conn = http.client.HTTPSConnection("graph.facebook.com")
+    payload = json.dumps(mensaje)
     headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {ACCESS_TOKEN}"
+        'Authorization': f'Bearer {ACCESS_TOKEN}',
+        'Content-Type': 'application/json'
     }
-
-    connection = http.client.HTTPSConnection("graph.facebook.com")
-
-    try:
-        connection.request("POST", f"/v20.0/{PAGE_ID}/messages", data, headers)
-        response = connection.getresponse()
-        response_data = response.read().decode()
-        print(response.status, response.reason, response_data)
-    except Exception as e:
-        print(f"Error al enviar el mensaje: {e}")
-    finally:
-        connection.close()
+    conn.request("POST", f"/v15.0/{PAGE_ID}/messages", payload, headers)
+    res = conn.getresponse()
+    data = res.read()
+    print("Respuesta de Facebook API:", data.decode("utf-8"))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(debug=True)
