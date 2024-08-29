@@ -74,10 +74,12 @@ def recibir_mensajes():
                     estado_usuario.pop(numero, None)  # Eliminar estado para reiniciar
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Si no se ha seleccionado "Sí", enviar mensaje inicial
+            # Si no se ha seleccionado "Sí" o "No" y envía un mensaje de texto
             if not estado_usuario[numero]["autenticacion_confirmada"]:
-                enviar_mensaje_inicial(numero)
-                return jsonify({'status': 'Mensaje inicial enviado'}), 200
+                if not estado_usuario[numero].get("recordatorio_enviado", False):
+                    enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
+                    estado_usuario[numero]["recordatorio_enviado"] = True
+                return jsonify({'status': 'Esperando selección de botón'}), 200
 
             # Lógica de validación de correo solo si está esperando correo
             if estado_usuario[numero]["esperando_correo"]:
