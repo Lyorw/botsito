@@ -80,6 +80,7 @@ def recibir_mensajes():
                 if not estado_usuario[numero]["recordatorio_enviado"]:
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
+                # No hacer nada más hasta que se seleccione un botón
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
             # Lógica de validación de correo solo si está esperando correo
