@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import http.client
 import json
+import re  # Librería para expresiones regulares
 from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta
 
 app = Flask(__name__)
@@ -11,6 +12,7 @@ ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62N
 
 # Un conjunto para almacenar los identificadores de mensajes ya procesados
 mensajes_procesados = set()
+intentos_por_usuario = {}  # Diccionario para rastrear intentos por usuario
 
 @app.route('/')
 def index():
@@ -41,6 +43,7 @@ def recibir_mensajes():
             messages = objeto_mensaje[0]
             numero = messages.get("from", "")
             mensaje_id = messages.get("id", "")
+            texto_usuario = messages.get("text", {}).get("body", "").strip()  # Capturar el mensaje de texto del usuario
 
             # Verificar si el mensaje ya ha sido procesado
             if mensaje_id in mensajes_procesados:
@@ -62,6 +65,23 @@ def recibir_mensajes():
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                 
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
+
+            # Lógica para validar el correo electrónico
+            if validar_correo(texto_usuario):
+                enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
+                intentos_por_usuario.pop(numero, None)  # Reiniciar intentos en caso de éxito
+            else:
+                intentos = intentos_por_usuario.get(numero, 0) + 1
+                if intentos >= 2:
+                    enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
+                    intentos_por_usuario.pop(numero, None)  # Reiniciar intentos después de fallar dos veces
+                    mensaje_inicial = obtener_mensaje_por_id(1)
+                    enviar_mensaje_texto(numero, mensaje_inicial)  # Reenviar mensaje inicial
+                else:
+                    enviar_mensaje_texto(numero, f"Correo inválido, por favor vuelva a ingresar. Intento {intentos}/2")
+                    intentos_por_usuario[numero] = intentos
+
+                return jsonify({'status': 'Respuesta procesada'}), 200
 
             # Obtener el mensaje inicial desde la base de datos
             mensaje_db = obtener_mensaje_por_id(1)  # ID 1 para el mensaje inicial
@@ -119,6 +139,11 @@ def enviar_mensaje_texto(numero, mensaje_texto):
         }
     }
     enviar_mensaje(responder_mensaje)
+
+# Función para validar el formato del correo electrónico
+def validar_correo(correo):
+    patron = r'^[A-Za-z]{5,}@[A-Za-z0-9]+\.(globalhitss\.com|claro\.com\.pe)$'
+    return re.match(patron, correo) is not None
 
 def enviar_mensaje(mensaje):
     conn = http.client.HTTPSConnection("graph.facebook.com")
