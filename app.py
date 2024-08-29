@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import http.client
 import json
-from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta  # Importar las funciones para obtener mensajes y alternativas desde la BD
+from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta
 
 app = Flask(__name__)
 
@@ -46,7 +46,6 @@ def recibir_mensajes(req):
                 numero = messages.get("from", "")
 
                 if "😊" not in text:
-                    # Obtener el mensaje desde la base de datos
                     mensaje_db = obtener_mensaje_por_id(1)
                     if not mensaje_db:
                         mensaje_db = "No se pudo obtener el mensaje de la base de datos."
@@ -78,6 +77,7 @@ def recibir_mensajes(req):
                             }
                         }
                     }
+                    print("Mensaje a enviar:", json.dumps(responder_mensaje, indent=2))  # Verificar el contenido del mensaje
                     enviar_mensajes_whatsapp(responder_mensaje, numero)
             elif messages.get('type') == 'interactive':
                 reply_id = messages.get('interactive', {}).get('button_reply', {}).get('id', "")
@@ -98,6 +98,7 @@ def recibir_mensajes(req):
                         "body": responder_mensaje
                     }
                 }
+                print("Mensaje a enviar:", json.dumps(data, indent=2))  # Verificar el contenido del mensaje
                 enviar_mensajes_whatsapp(data, numero)
 
         return jsonify({'message': 'EVENT_RECEIVED'})
