@@ -12,7 +12,7 @@ ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62N
 
 mensajes_procesados = set()
 intentos_por_usuario = {}
-esperando_respuesta = {}
+estado_usuario = {}
 
 @app.route('/')
 def index():
@@ -54,11 +54,14 @@ def recibir_mensajes():
                 enviar_mensaje_texto(numero, "Usuario ya está registrado")
                 return jsonify({'status': 'Usuario registrado'}), 200
 
-            # Si no está registrado, manejar el flujo inicial
-            if numero not in esperando_respuesta or not esperando_respuesta[numero]:
+            # Inicialización del estado del usuario si no existe
+            if numero not in estado_usuario:
+                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False}
+
+            # Manejar el flujo inicial
+            if not estado_usuario[numero]["esperando_correo"]:
                 enviar_mensaje_inicial(numero)
-                esperando_respuesta[numero] = True
-                intentos_por_usuario[numero] = 0  # Reiniciar intentos al comenzar desde el inicio
+                estado_usuario[numero] = {"intentos": 0, "esperando_correo": True}
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
             # Continuar solo si se ha seleccionado un botón
@@ -70,39 +73,28 @@ def recibir_mensajes():
                 if seleccion == "button_yes":
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
-                    intentos_por_usuario[numero] = 0  # Reiniciar intentos al pasar a la pregunta de correo
-                    esperando_respuesta[numero] = "correo"  # Cambiar el estado a esperar un correo
+                    estado_usuario[numero]["esperando_correo"] = True
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
-                    esperando_respuesta[numero] = False  # No espera más respuestas
-                
+                    estado_usuario.pop(numero, None)  # Eliminar estado para reiniciar
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Lógica de validación de correo si estamos esperando un correo
-            if esperando_respuesta.get(numero) == "correo":
+            # Lógica de validación de correo
+            if estado_usuario[numero]["esperando_correo"]:
                 if not validar_correo(texto_usuario):
-                    intentos = intentos_por_usuario.get(numero, 0) + 1
-                    intentos_por_usuario[numero] = intentos  # Actualizar el contador de intentos
-                    if intentos == 1:
+                    estado_usuario[numero]["intentos"] += 1
+                    if estado_usuario[numero]["intentos"] == 1:
                         enviar_mensaje_texto(numero, "Correo inválido, por favor vuelva a ingresar. Intento 1/2")
-                    elif intentos == 2:
+                    elif estado_usuario[numero]["intentos"] == 2:
                         enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
-                        intentos_por_usuario[numero] = 0  # Reiniciar los intentos
+                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                         enviar_mensaje_inicial(numero)
-                        esperando_respuesta[numero] = True  # Reiniciar el estado a esperar botones
-                    return jsonify({'status': 'Intento de correo procesado'}), 200
                 else:
                     enviar_mensaje_texto(numero, "Correo válido, continuamos con el proceso.")
-                    intentos_por_usuario.pop(numero, None)  # Borrar intentos después de éxito
-                    esperando_respuesta[numero] = False  # No espera más respuestas
-                
-                return jsonify({'status': 'Correo procesado'}), 200
+                    estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
+                return jsonify({'status': 'Intento de correo procesado'}), 200
 
-            # Si llega un mensaje de texto cuando se espera un botón, ignorarlo
-            if esperando_respuesta.get(numero, False) == True:
-                return jsonify({'status': 'Esperando respuesta a botón'}), 200
-
-            return jsonify({'status': 'Mensaje no esperado procesado'}), 200
+            return jsonify({'status': 'Respuesta procesada'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
     except Exception as e:
