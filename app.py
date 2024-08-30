@@ -189,13 +189,10 @@ def recibir_mensajes():
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
             # Manejo para código (ID=6)
-            # Manejo para código (ID=6)
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):
                     estado_usuario[numero]["esperando_codigo"] = False
                     estado_usuario[numero]["esperando_pregunta_7"] = True
-                    
-                    print(f"Estado actualizado para {numero}: {estado_usuario[numero]}")
                     
                     # Obtener mensaje del ID=7
                     mensaje_pregunta_7 = obtener_mensaje_por_id(7)
@@ -203,7 +200,7 @@ def recibir_mensajes():
                     # Obtener alternativas de la tabla 'alternativas_preguntas' para ID=7
                     alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
                     
-                    print(f"Alternativas obtenidas para pregunta 7: {alternativas_pregunta_7}")
+                    print(f"Alternativas obtenidas para pregunta 7: {alternativas_pregunta_7}")  # Línea de depuración
                     
                     # Crear los botones para las alternativas
                     botones = [
