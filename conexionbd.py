@@ -81,14 +81,14 @@ def registrar_usuario(correo, nombre, apellido, dni, codigo_usuario, canal_venta
         conn.close()
 
 # Nueva función a añadir para obtener el nombre de la alternativa por ID
-def obtener_alternativa_por_id(id_alternativa):
+def obtener_alternativa_por_id(id):
     conn = obtener_conexion()
     if conn is None:
         return None
-
+    
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID = %s", (id_alternativa,))
+        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID = %s", (id,))
         row = cursor.fetchone()
         return row[0] if row else None
     except pymssql.Error as e:
@@ -96,3 +96,4 @@ def obtener_alternativa_por_id(id_alternativa):
         return None
     finally:
         conn.close()
+

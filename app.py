@@ -311,26 +311,34 @@ def recibir_mensajes():
             if estado_usuario[numero].get("esperando_codigo_validacion", False):
                 if texto_usuario.upper() == estado_usuario[numero]["codigo_validacion"]:
                     enviar_mensaje_texto(numero, "¡Felicidades! Su proceso de autenticación ha sido completado con éxito.")
-                    registrado = registrar_usuario(
+            
+                    # Asignar los valores correctos para canal_ventas y site_reportado
+                    canal_ventas = obtener_alternativa_por_id(estado_usuario[numero]["id_respuesta_canal"])
+                    site_reportado = obtener_alternativa_por_id(estado_usuario[numero]["id_respuesta_site"])
+            
+                    # Guardar en la base de datos
+                    registro_exitoso = registrar_usuario(
+                        numero,
                         estado_usuario[numero]["correo"],
                         estado_usuario[numero]["nombre"],
                         estado_usuario[numero]["apellido"],
                         estado_usuario[numero]["dni"],
                         estado_usuario[numero]["codigo_usuario"],
-                        estado_usuario[numero]["canal_ventas"],
-                        estado_usuario[numero]["site_reportado"],
-                        numero
+                        canal_ventas,
+                        site_reportado
                     )
-                    if not registrado:
+                    if registro_exitoso:
+                        enviar_mensaje_texto(numero, "Sus datos se han registrado correctamente.")
+                    else:
                         enviar_mensaje_texto(numero, "Hubo un error al registrar sus datos. Por favor, inténtelo de nuevo más tarde.")
-                    estado_usuario.pop(numero, None)
+                    estado_usuario.pop(numero, None)  # Finaliza el proceso
                 else:
                     estado_usuario[numero]["intentos_codigo_validacion"] += 1
                     if estado_usuario[numero]["intentos_codigo_validacion"] == 1:
                         enviar_mensaje_texto(numero, "Código incorrecto, por favor intente nuevamente. Intento 1/2")
                     elif estado_usuario[numero]["intentos_codigo_validacion"] == 2:
                         enviar_mensaje_texto(numero, "Código incorrecto. Intentos fallidos, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)
+                        estado_usuario.pop(numero, None)  # Finaliza el proceso después de 2 intentos fallidos
                 return jsonify({'status': 'Validación de código procesada'}), 200
             
             return jsonify({'status': 'Respuesta procesada'}), 200
