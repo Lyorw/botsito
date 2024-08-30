@@ -81,16 +81,14 @@ def recibir_mensajes():
                     "intentos_numero": 0,
                     "intentos_codigo": 0,
                     "intentos_pregunta_7": 0,
-                    "intentos_pregunta_8": 0,
                     "esperando_correo": False,
                     "esperando_nombre": False,
                     "esperando_apellido": False,
                     "esperando_numero": False,
                     "esperando_codigo": False,
-                    "esperando_pregunta_7": False,
-                    "esperando_pregunta_8": False,
                     "autenticacion_confirmada": False,
                     "recordatorio_enviado": False,
+                    "esperando_pregunta_7": False,
                     "tipo_codigo": ""
                 }
                 enviar_mensaje_inicial(numero)
@@ -194,7 +192,7 @@ def recibir_mensajes():
                     
                     if alternativas_pregunta_7:
                         opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_7)])
-                        enviar_mensaje_texto(numero, f"{mensaje_pregunta_7}\n\n{opciones}\n\nPor favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
+                        enviar_mensaje_texto(numero, f"{mensaje_pregunta_7}\n\n{opciones}")
                     else:
                         enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                 else:
@@ -217,27 +215,18 @@ def recibir_mensajes():
                 elif tipo_codigo == "D":
                     valid_ids = [5]
 
-                try:
-                    alternativa_id = int(texto_usuario)
-                    if 1 <= alternativa_id <= 5:
+                alternativa_id = int(texto_usuario)
+                if 1 <= alternativa_id <= 5:
+                    seleccion_valida = False
+                    alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
+                    if alternativa_id <= len(alternativas_pregunta_7):
+                        alternativa_texto = alternativas_pregunta_7[alternativa_id - 1]
                         if alternativa_id in valid_ids:
-                            enviar_mensaje_texto(numero, "Gracias, puede proceder.")
-                            estado_usuario[numero]["esperando_pregunta_7"] = False
-                            estado_usuario[numero]["esperando_pregunta_8"] = True
-                            mensaje_pregunta_8 = obtener_mensaje_por_id(8)
-                            alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)
-                            if alternativas_pregunta_8:
-                                opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_8)])
-                                enviar_mensaje_texto(numero, f"{mensaje_pregunta_8}\n\n{opciones}\n\nPor favor, responda con un número entre 1 y 4 para seleccionar su opción. (1/2 intentos)")
-                            else:
-                                enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
-                        else:
-                            estado_usuario[numero]["intentos_pregunta_7"] += 1
-                            if estado_usuario[numero]["intentos_pregunta_7"] == 1:
-                                enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
-                            elif estado_usuario[numero]["intentos_pregunta_7"] == 2:
-                                enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                                estado_usuario.pop(numero, None)
+                            seleccion_valida = True
+
+                    if seleccion_valida:
+                        enviar_mensaje_texto(numero, "Gracias, puede proceder.")
+                        estado_usuario.pop(numero, None)
                     else:
                         estado_usuario[numero]["intentos_pregunta_7"] += 1
                         if estado_usuario[numero]["intentos_pregunta_7"] == 1:
@@ -245,7 +234,7 @@ def recibir_mensajes():
                         elif estado_usuario[numero]["intentos_pregunta_7"] == 2:
                             enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
                             estado_usuario.pop(numero, None)
-                except ValueError:
+                else:
                     estado_usuario[numero]["intentos_pregunta_7"] += 1
                     if estado_usuario[numero]["intentos_pregunta_7"] == 1:
                         enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
@@ -253,28 +242,6 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a pregunta 7 procesada'}), 200
-
-            if estado_usuario[numero].get("esperando_pregunta_8", False):
-                try:
-                    alternativa_id = int(texto_usuario)
-                    if 1 <= alternativa_id <= 4:
-                        enviar_mensaje_texto(numero, "Gracias, puede proceder.")
-                        estado_usuario.pop(numero, None)
-                    else:
-                        estado_usuario[numero]["intentos_pregunta_8"] += 1
-                        if estado_usuario[numero]["intentos_pregunta_8"] == 1:
-                            enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 4 para seleccionar su opción. (1/2 intentos)")
-                        elif estado_usuario[numero]["intentos_pregunta_8"] == 2:
-                            enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                            estado_usuario.pop(numero, None)
-                except ValueError:
-                    estado_usuario[numero]["intentos_pregunta_8"] += 1
-                    if estado_usuario[numero]["intentos_pregunta_8"] == 1:
-                        enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 4 para seleccionar su opción. (1/2 intentos)")
-                    elif estado_usuario[numero]["intentos_pregunta_8"] == 2:
-                        enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)
-                return jsonify({'status': 'Respuesta a pregunta 8 procesada'}), 200
             
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
