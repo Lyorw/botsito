@@ -30,6 +30,10 @@ def verificar_token():
 def validar_nombre(nombre):
     return not any(char.isdigit() for char in nombre)
 
+def validar_numero(numero):
+    # La condición es que debe tener solo números y un máximo de 20 dígitos
+    return numero.isdigit() and len(numero) <= 20
+
 @app.route('/webhook', methods=['POST'])
 def recibir_mensajes():
     try:
@@ -58,9 +62,11 @@ def recibir_mensajes():
                     "intentos_correo": 0,
                     "intentos_nombre": 0,
                     "intentos_apellido": 0,
+                    "intentos_numero": 0,
                     "esperando_correo": False,
                     "esperando_nombre": False,
                     "esperando_apellido": False,
+                    "esperando_numero": False,
                     "autenticacion_confirmada": False,
                     "recordatorio_enviado": False
                 }
@@ -117,9 +123,8 @@ def recibir_mensajes():
 
             # Nueva lógica para manejar el ID=3 (nombres)
             if estado_usuario[numero].get("esperando_nombre", False):
-                print(f"Debug: Esperando nombre para el número {numero}, texto ingresado: {texto_usuario}")
                 if validar_nombre(texto_usuario):  # Verifica que el nombre no tenga números
-                    # enviar_mensaje_texto(numero, "Nombre válido, puede continuar.")
+                    enviar_mensaje_texto(numero, "Nombre válido, puede continuar.")
                     estado_usuario[numero]["esperando_nombre"] = False
                     estado_usuario[numero]["esperando_apellido"] = True
                     # Pasar al ID=4 para pedir apellido
@@ -136,11 +141,13 @@ def recibir_mensajes():
 
             # Nueva lógica para manejar el ID=4 (apellidos)
             if estado_usuario[numero].get("esperando_apellido", False):
-                print(f"Debug: Esperando apellido para el número {numero}, texto ingresado: {texto_usuario}")
                 if validar_nombre(texto_usuario):  # Verifica que el apellido no tenga números
                     enviar_mensaje_texto(numero, "Apellido válido, puede continuar.")
-                    estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
-                    # Aquí podrías pasar al siguiente ID o proceso
+                    estado_usuario[numero]["esperando_apellido"] = False
+                    estado_usuario[numero]["esperando_numero"] = True
+                    # Pasar al ID=5 para pedir número
+                    mensaje_numero = obtener_mensaje_por_id(5)
+                    enviar_mensaje_texto(numero, mensaje_numero)
                 else:
                     estado_usuario[numero]["intentos_apellido"] += 1
                     if estado_usuario[numero]["intentos_apellido"] == 1:
@@ -149,6 +156,21 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Apellido inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 return jsonify({'status': 'Intento de apellido procesado'}), 200
+
+            # Nueva lógica para manejar el ID=5 (número)
+            if estado_usuario[numero].get("esperando_numero", False):
+                if validar_numero(texto_usuario):  # Verifica que el número sea válido
+                    enviar_mensaje_texto(numero, "Número válido, puede continuar.")
+                    estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
+                    # Aquí podrías pasar al siguiente ID o proceso
+                else:
+                    estado_usuario[numero]["intentos_numero"] += 1
+                    if estado_usuario[numero]["intentos_numero"] == 1:
+                        enviar_mensaje_texto(numero, "Número inválido, por favor vuelva a ingresar. Intento 1/2")
+                    elif estado_usuario[numero]["intentos_numero"] == 2:
+                        enviar_mensaje_texto(numero, "Número inválido, nos vemos pronto.")
+                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                return jsonify({'status': 'Intento de número procesado'}), 200
 
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
