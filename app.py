@@ -235,10 +235,27 @@ def recibir_mensajes():
                 return jsonify({'status': 'Intento de código procesado'}), 200
 
             if estado_usuario[numero].get("esperando_pregunta_7", False):
+                tipo_codigo = estado_usuario[numero]["tipo_codigo"]
+                valid_ids = []
+
+                if tipo_codigo == "E":
+                    valid_ids = [4, 6, 7]
+                elif tipo_codigo == "C":
+                    valid_ids = [3]
+                elif tipo_codigo == "D":
+                    valid_ids = [5]
+
                 try:
                     alternativa_id = int(texto_usuario)
-                    if 1 <= alternativa_id <= 5:  # Ajusta el rango según tus opciones
-                        estado_usuario[numero]["canal_ventas"] = obtener_alternativa_por_id(alternativa_id + 2)
+                    id_map = {
+                        1: 3,
+                        2: 4,
+                        3: 5,
+                        4: 6,
+                        5: 7
+                    }
+                    if id_map.get(alternativa_id) in valid_ids:
+                        # enviar_mensaje_texto(numero, "Gracias, puede proceder.")
                         estado_usuario[numero]["esperando_pregunta_7"] = False
                         estado_usuario[numero]["esperando_pregunta_8"] = True
                         mensaje_pregunta_8 = obtener_mensaje_por_id(8)
