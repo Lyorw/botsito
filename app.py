@@ -2,13 +2,13 @@ from flask import Flask, request, jsonify
 import http.client
 import json
 import re
-from conexionbd import obtener_mensaje_por_id, verificar_usuario_registrado
+from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado
 
 app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"
-ACCESS_TOKEN = "EAAYAnB4BMXoBO3N1OULWWpxOFfWJHm5yZCCFGcC0JWOLg697IyoaUKeBpBai6mbXwHkqod4vb0ZCa8iEtosSqYh1IvGTymcMHynSkEboqeSjL7hFxwYCOSVckT7hWSMoQdqbk3nqkCDZCX4lmyKK5LN9qbDus0kZAogjvieBtIH02FECvjBsOc902swwFZCx7akqjLTg4pk6HBoImZBLpBkXqB7xoZD"
+ACCESS_TOKEN = "EAAYAnB4BMXoBO3q0Qr3D26pKA9wTWztyng7ZA1miM0ZA1W2onKQvkFsuvImZCx12IrtQYMUD06PcloyT5PZA7xmqPMZBAqPYWtUlBOKjZCOqS6ZA9dIIOHZAN2nn0gS2mryDS39zcs7FegXhgFjSjoWZCr91GC0WO6fOiLkgkPdah5njDGcEQUsZBHByH8DRTPSiB0gVZAIkiUD7aMymEDZA6sQQ8r0L8LMZD"
 
 mensajes_procesados = set()
 estado_usuario = {}
@@ -69,12 +69,10 @@ def recibir_mensajes():
             mensaje_id = messages.get("id", "")
             texto_usuario = messages.get("text", {}).get("body", "").strip()
 
-            # Ignorar mensajes anteriores y solo procesar nuevos
             if mensaje_id in mensajes_procesados:
                 return jsonify({'status': 'Mensaje ya procesado'}), 200
             mensajes_procesados.add(mensaje_id)
 
-            # Inicialización del estado del usuario si no existe
             if numero not in estado_usuario:
                 estado_usuario[numero] = {
                     "intentos_correo": 0,
@@ -88,17 +86,16 @@ def recibir_mensajes():
                     "esperando_numero": False,
                     "esperando_codigo": False,
                     "autenticacion_confirmada": False,
-                    "recordatorio_enviado": False
+                    "recordatorio_enviado": False,
+                    "esperando_pregunta_7": False
                 }
                 enviar_mensaje_inicial(numero)
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
-            # Verificar si el usuario ya está registrado
             if verificar_usuario_registrado(numero):
                 enviar_mensaje_texto(numero, "Usuario ya está registrado")
                 return jsonify({'status': 'Usuario registrado'}), 200
 
-            # Continuar solo si se ha seleccionado un botón
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
@@ -115,14 +112,12 @@ def recibir_mensajes():
                     estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Si no se ha seleccionado "Sí" o "No", enviar mensaje inicial
             if not estado_usuario[numero].get("autenticacion_confirmada", False):
                 if not estado_usuario[numero].get("recordatorio_enviado", False):
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Ajustes para manejar correo electrónico
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
@@ -139,7 +134,6 @@ def recibir_mensajes():
                     estado_usuario[numero]["esperando_correo"] = False
                 return jsonify({'status': 'Intento de correo procesado'}), 200
 
-            # Manejo para nombres (ID=3)
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["esperando_nombre"] = False
@@ -155,7 +149,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
 
-            # Manejo para apellidos (ID=4)
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["esperando_apellido"] = False
@@ -171,7 +164,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de apellido procesado'}), 200
 
-            # Manejo para número (ID=5)
             if estado_usuario[numero].get("esperando_numero", False):
                 if validar_numero(texto_usuario):
                     estado_usuario[numero]["esperando_numero"] = False
@@ -187,24 +179,35 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
-            # Manejo para código (ID=6)
             if estado_usuario[numero].get("esperando_codigo", False):
-                if validar_codigo(texto_usuario):  # Verifica que el código sea válido
+                if validar_codigo(texto_usuario):
                     estado_usuario[numero]["esperando_codigo"] = False
+                    estado_usuario[numero]["esperando_pregunta_7"] = True
                     
-                    # Respuesta de agradecimiento
-                    enviar_mensaje_texto(numero, "Gracias, puede proceder.")
+                    mensaje_pregunta_7 = obtener_mensaje_por_id(7)
+                    alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
                     
-                    # Resetear el estado del usuario para una nueva sesión
-                    estado_usuario.pop(numero, None)
+                    if alternativas_pregunta_7:
+                        opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_7)])
+                        enviar_mensaje_texto(numero, f"{mensaje_pregunta_7}\n\n{opciones}")
+                    else:
+                        enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                 else:
                     estado_usuario[numero]["intentos_codigo"] += 1
                     if estado_usuario[numero]["intentos_codigo"] == 1:
                         enviar_mensaje_texto(numero, "Código inválido, por favor vuelva a ingresar. Intento 1/2")
                     elif estado_usuario[numero]["intentos_codigo"] == 2:
                         enviar_mensaje_texto(numero, "Código inválido, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de código procesado'}), 200
+            
+            if estado_usuario[numero].get("esperando_pregunta_7", False):
+                if texto_usuario in ["1", "2", "3", "4", "5"]:
+                    enviar_mensaje_texto(numero, "Gracias, puede proceder.")
+                    estado_usuario.pop(numero, None)
+                else:
+                    enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal.")
+                return jsonify({'status': 'Respuesta a pregunta 7 procesada'}), 200
             
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
@@ -231,21 +234,21 @@ def validar_correo(correo):
 
 def enviar_mensaje_inicial(numero):
     mensaje_db = obtener_mensaje_por_id(1)
-    alternativas = ["Sí", "No"]
+    alternativas = obtener_alternativas_por_id_pregunta(1)
 
     botones = [
         {
             "type": "reply",
             "reply": {
                 "id": "button_yes",
-                "title": alternativas[0]
+                "title": alternativas[0] if len(alternativas) > 0 else "Sí"
             }
         },
         {
             "type": "reply",
             "reply": {
                 "id": "button_no",
-                "title": alternativas[1]
+                "title": alternativas[1] if len(alternativas) > 1 else "No"
             }
         }
     ]
