@@ -195,7 +195,7 @@ def recibir_mensajes():
                     if alternativas_pregunta_7:
                         opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_7)])
                         enviar_mensaje_texto(numero, f"{mensaje_pregunta_7}\n\n{opciones}")
-                        enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
+                        # enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
                     else:
                         enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                 else:
