@@ -89,7 +89,8 @@ def recibir_mensajes():
                     "esperando_codigo": False,
                     "autenticacion_confirmada": False,
                     "recordatorio_enviado": False,
-                    "esperando_pregunta_7": False
+                    "esperando_pregunta_7": False,
+                    "pagina_actual": 0  # Para manejar la paginación
                 }
                 enviar_mensaje_inicial(numero)
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
@@ -104,7 +105,7 @@ def recibir_mensajes():
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
                 seleccion = button_reply.get("id", "")
-                
+
                 if seleccion == "button_yes":
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
@@ -114,6 +115,15 @@ def recibir_mensajes():
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                     estado_usuario.pop(numero, None)
+                elif seleccion == "siguiente":
+                    estado_usuario[numero]["pagina_actual"] += 1
+                    enviar_mensaje_opciones(numero, estado_usuario[numero]["pagina_actual"])
+                elif seleccion == "anterior":
+                    estado_usuario[numero]["pagina_actual"] -= 1
+                    enviar_mensaje_opciones(numero, estado_usuario[numero]["pagina_actual"])
+                else:
+                    # Aquí procesarías la opción seleccionada en lugar de navegación
+                    enviar_mensaje_texto(numero, "Gracias por seleccionar una opción.")
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
             # Si no se ha seleccionado "Sí" o "No", enviar mensaje inicial
@@ -193,63 +203,82 @@ def recibir_mensajes():
                 if validar_codigo(texto_usuario):
                     estado_usuario[numero]["esperando_codigo"] = False
                     estado_usuario[numero]["esperando_pregunta_7"] = True
-                    
-                    print(f"Estado actualizado para {numero}: {estado_usuario[numero]}")
-                    
-                    # Obtener mensaje del ID=7
-                    mensaje_pregunta_7 = obtener_mensaje_por_id(7)
-                    
-                    # Obtener alternativas de la tabla 'alternativas_preguntas' para ID=7
-                    alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
-                    
-                    print(f"Alternativas obtenidas para pregunta 7: {alternativas_pregunta_7}")
-                    
-                    if alternativas_pregunta_7:  # Asegurarse de que hay alternativas disponibles
-                        # Crear los botones para las alternativas
-                        botones = [
-                            {
-                                "type": "reply",
-                                "reply": {
-                                    "id": f"button_{i+1}",
-                                    "title": alternativa
-                                }
-                            } for i, alternativa in enumerate(alternativas_pregunta_7)
-                        ]
-                        
-                        responder_mensaje = {
-                            "messaging_product": "whatsapp",
-                            "recipient_type": "individual",
-                            "to": numero,
-                            "type": "interactive",
-                            "interactive": {
-                                "type": "button",
-                                "body": {
-                                    "text": mensaje_pregunta_7
-                                },
-                                "action": {
-                                    "buttons": botones
-                                }
-                            }
-                        }
-                        print(f"Enviando mensaje con botones: {responder_mensaje}")
-                        enviar_mensaje(responder_mensaje)
-                    else:
-                        enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
+                    estado_usuario[numero]["pagina_actual"] = 0  # Inicializar a la primera página
+                    enviar_mensaje_opciones(numero, estado_usuario[numero]["pagina_actual"])
                 else:
                     estado_usuario[numero]["intentos_codigo"] += 1
                     if estado_usuario[numero]["intentos_codigo"] == 1:
                         enviar_mensaje_texto(numero, "Código inválido, por favor vuelva a ingresar. Intento 1/2")
                     elif estado_usuario[numero]["intentos_codigo"] == 2:
                         enviar_mensaje_texto(numero, "Código inválido, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de código procesado'}), 200
-            
+
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
     except Exception as e:
         print("Error en el procesamiento del mensaje:", e)
         return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
+
+def enviar_mensaje_opciones(numero, pagina):
+    mensaje_pregunta_7 = obtener_mensaje_por_id(7)
+    alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
+
+    # Número máximo de botones por página
+    max_botones_por_pagina = 3
+
+    # Calcular las opciones para mostrar en la página actual
+    inicio = pagina * max_botones_por_pagina
+    fin = inicio + max_botones_por_pagina
+    opciones_pagina_actual = alternativas_pregunta_7[inicio:fin]
+
+    # Crear los botones para las alternativas en la página actual
+    botones = [
+        {
+            "type": "reply",
+            "reply": {
+                "id": f"button_{inicio + i + 1}",
+                "title": alternativa
+            }
+        } for i, alternativa in enumerate(opciones_pagina_actual)
+    ]
+
+    # Añadir botones de navegación
+    if pagina > 0:
+        botones.append({
+            "type": "reply",
+            "reply": {
+                "id": "anterior",
+                "title": "Anterior"
+            }
+        })
+
+    if fin < len(alternativas_pregunta_7):
+        botones.append({
+            "type": "reply",
+            "reply": {
+                "id": "siguiente",
+                "title": "Siguiente"
+            }
+        })
+
+    responder_mensaje = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": numero,
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "body": {
+                "text": mensaje_pregunta_7
+            },
+            "action": {
+                "buttons": botones
+            }
+        }
+    }
+    enviar_mensaje(responder_mensaje)
 
 def enviar_mensaje_texto(numero, mensaje_texto):
     responder_mensaje = {
