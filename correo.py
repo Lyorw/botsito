@@ -7,7 +7,7 @@ from email.mime.image import MIMEImage
 
 def enviar_correo(email, code):
     # Ruta a la imagen descargada
-    image_path = "C:/Users/Administrador/Desktop/BOTS/wsp final/OIP.jpg"  # Cambia esta ruta a donde tengas la imagen
+    image_path = "OIP.jpg"  # Cambia esta ruta a donde tengas la imagen
 
     # Crear el mensaje de correo
     mensaje = MIMEMultipart()
