@@ -34,7 +34,27 @@ def validar_nombre(nombre):
 def validar_numero(numero):
     # La condición es que debe tener solo números y un mínimo de 5 y un máximo de 20 dígitos
     return numero.isdigit() and 5 <= len(numero) <= 20
-
+def validar_codigo(codigo):
+    # Asegurarse de que el código tenga al menos 2 caracteres (1 letra y 1 dígito)
+    if len(codigo) < 2:
+        return False
+    
+    letra = codigo[0].upper()
+    numeros = codigo[1:]
+    
+    # Verificar que solo la primera letra es alfabética y el resto son dígitos
+    if not letra.isalpha() or not numeros.isdigit():
+        return False
+    
+    # Validar según la letra inicial
+    if letra == "E":
+        return 5 <= len(codigo) <= 6
+    elif letra == "C":
+        return 5 <= len(codigo) <= 8
+    elif letra == "D":
+        return 10 <= len(codigo) <= 15
+    else:
+        return False
 @app.route('/webhook', methods=['POST'])
 def recibir_mensajes():
     try:
@@ -161,9 +181,11 @@ def recibir_mensajes():
             # Nueva lógica para manejar el ID=5 (número)
             if estado_usuario[numero].get("esperando_numero", False):
                 if validar_numero(texto_usuario):  # Verifica que el número sea válido
-                    enviar_mensaje_texto(numero, "Número válido, puede continuar.")
-                    estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
-                    # Aquí podrías pasar al siguiente ID o proceso
+                    estado_usuario[numero]["esperando_numero"] = False
+                    estado_usuario[numero]["esperando_codigo"] = True
+                    # Pasar al ID=6 para pedir código
+                    mensaje_codigo = obtener_mensaje_por_id(6)
+                    enviar_mensaje_texto(numero, mensaje_codigo)
                 else:
                     estado_usuario[numero]["intentos_numero"] += 1
                     if estado_usuario[numero]["intentos_numero"] == 1:
@@ -172,6 +194,25 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Número inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 return jsonify({'status': 'Intento de número procesado'}), 200
+            # Nueva lógica para manejar el ID=6 (código)
+            if estado_usuario[numero].get("esperando_codigo", False):
+                if validar_codigo(texto_usuario):  # Verifica que el código sea válido
+                    enviar_mensaje_texto(numero, "Código válido, puede continuar.")
+                    estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
+                    # Aquí podrías pasar al siguiente ID o proceso, si lo hubiera
+                else:
+                    estado_usuario[numero]["intentos_codigo"] += 1
+                    if estado_usuario[numero]["intentos_codigo"] == 1:
+                        enviar_mensaje_texto(numero, "Código inválido, por favor vuelva a ingresar. Intento 1/2")
+                    elif estado_usuario[numero]["intentos_codigo"] == 2:
+                        enviar_mensaje_texto(numero, "Código inválido, nos vemos pronto.")
+                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                return jsonify({'status': 'Intento de código procesado'}), 200
+
+
+
+
+
 
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
