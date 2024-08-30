@@ -1,4 +1,5 @@
 import pymssql
+from datetime import datetime
 
 def obtener_conexion():
     server = 'chatwsp.database.windows.net'
@@ -45,6 +46,22 @@ def obtener_alternativas_por_id_pregunta(id_pregunta):
     finally:
         conn.close()
 
+def obtener_alternativa_por_id(id_pregunta, id_alternativa):
+    conn = obtener_conexion()
+    if conn is None:
+        return None
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID_preguntas = %s AND ID = %s", (id_pregunta, id_alternativa))
+        row = cursor.fetchone()
+        return row[0] if row else None
+    except pymssql.Error as e:
+        print("Error al ejecutar la consulta:", e)
+        return None
+    finally:
+        conn.close()
+
 def verificar_usuario_registrado(numero):
     conn = obtener_conexion()
     if conn is None:
@@ -61,37 +78,21 @@ def verificar_usuario_registrado(numero):
     finally:
         conn.close()
 
-def registrar_usuario(celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado):
+def registrar_usuario(celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, id_perfil):
     conn = obtener_conexion()
     if conn is None:
-        return False
-
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO usuario (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, GETDATE(), 1)
-        """, (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado))
-        conn.commit()
-        return True
-    except pymssql.Error as e:
-        print("Error al registrar el usuario:", e)
-        return False
-    finally:
-        conn.close()
-
-def obtener_alternativa_por_id(id_alternativa):
-    conn = obtener_conexion()
-    if conn is None:
-        return None
+        raise Exception("No se pudo establecer la conexión con la base de datos.")
     
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID = %s", (id_alternativa,))
-        row = cursor.fetchone()
-        return row[0] if row else None
+        fecha_registro = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute("""
+            INSERT INTO usuario (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil))
+        conn.commit()
     except pymssql.Error as e:
-        print("Error al ejecutar la consulta:", e)
-        return None
+        print("Error al registrar el usuario:", e)
+        raise e
     finally:
         conn.close()
