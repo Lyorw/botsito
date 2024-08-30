@@ -30,10 +30,10 @@ def verificar_token():
 def validar_nombre(nombre):
     return not any(char.isdigit() for char in nombre)
 
-
 def validar_numero(numero):
     # La condición es que debe tener solo números y un mínimo de 5 y un máximo de 20 dígitos
     return numero.isdigit() and 5 <= len(numero) <= 20
+
 def validar_codigo(codigo):
     # Asegurarse de que el código tenga al menos 2 caracteres (1 letra y 1 dígito)
     if len(codigo) < 2:
@@ -55,6 +55,7 @@ def validar_codigo(codigo):
         return 10 <= len(codigo) <= 15
     else:
         return False
+
 @app.route('/webhook', methods=['POST'])
 def recibir_mensajes():
     try:
@@ -84,10 +85,12 @@ def recibir_mensajes():
                     "intentos_nombre": 0,
                     "intentos_apellido": 0,
                     "intentos_numero": 0,
+                    "intentos_codigo": 0,  # Inicialización de intentos para código
                     "esperando_correo": False,
                     "esperando_nombre": False,
                     "esperando_apellido": False,
                     "esperando_numero": False,
+                    "esperando_codigo": False,  # Inicialización de estado para código
                     "autenticacion_confirmada": False,
                     "recordatorio_enviado": False
                 }
@@ -124,7 +127,7 @@ def recibir_mensajes():
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Ajustes dentro del método 'recibir_mensajes' para correo
+            # Lógica para manejar el correo electrónico (ID=2)
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
@@ -145,7 +148,6 @@ def recibir_mensajes():
             # Nueva lógica para manejar el ID=3 (nombres)
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):  # Verifica que el nombre no tenga números
-                    # enviar_mensaje_texto(numero, "Nombre válido, puede continuar.")
                     estado_usuario[numero]["esperando_nombre"] = False
                     estado_usuario[numero]["esperando_apellido"] = True
                     # Pasar al ID=4 para pedir apellido
@@ -163,7 +165,6 @@ def recibir_mensajes():
             # Nueva lógica para manejar el ID=4 (apellidos)
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):  # Verifica que el apellido no tenga números
-                    # enviar_mensaje_texto(numero, "Apellido válido, puede continuar.")
                     estado_usuario[numero]["esperando_apellido"] = False
                     estado_usuario[numero]["esperando_numero"] = True
                     # Pasar al ID=5 para pedir número
@@ -194,6 +195,7 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Número inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 return jsonify({'status': 'Intento de número procesado'}), 200
+
             # Nueva lógica para manejar el ID=6 (código)
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):  # Verifica que el código sea válido
@@ -208,11 +210,6 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Código inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 return jsonify({'status': 'Intento de código procesado'}), 200
-
-
-
-
-
 
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
