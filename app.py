@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import http.client
 import json
-from logica_mensajes import manejar_mensajes  # Importar función desde el otro archivo
+from logica_mesajes import manejar_mensajes  # Importar función desde el otro archivo
 
 app = Flask(__name__)
 
