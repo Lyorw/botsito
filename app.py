@@ -268,14 +268,18 @@ def recibir_mensajes():
             if estado_usuario[numero].get("esperando_pregunta_8", False):
                 try:
                     alternativa_id = int(texto_usuario)
-                    site_reportado = obtener_alternativa_por_id(8, alternativa_id)
-                    if site_reportado:
-                        estado_usuario[numero]["site_reportado"] = site_reportado
+                    if 1 <= alternativa_id <= 4:
+                        # Guarda la respuesta seleccionada
+                        estado_usuario[numero]["site_reportado"] = obtener_alternativa_por_id(8, alternativa_id)
+                        
+                        # Generar y enviar el código de validación alfanumérico
                         codigo_validacion = generar_codigo_validacion()
                         estado_usuario[numero]["codigo_validacion"] = codigo_validacion
-                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)
+                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)  # Envía el correo con el código
+            
+                        # Preguntar por el código de validación
                         estado_usuario[numero]["esperando_codigo_validacion"] = True
-                        estado_usuario[numero]["intentos_codigo_validacion"] = 0
+                        estado_usuario[numero]["intentos_codigo_validacion"] = 0  # Inicializar el contador de intentos
                         enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
                         estado_usuario[numero]["esperando_pregunta_8"] = False
                     else:
@@ -293,7 +297,7 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a pregunta 8 procesada'}), 200
-
+            
             # Validación del código de correo enviado
             if estado_usuario[numero].get("esperando_codigo_validacion", False):
                 if texto_usuario.upper() == estado_usuario[numero]["codigo_validacion"]:
