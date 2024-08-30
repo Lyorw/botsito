@@ -189,8 +189,9 @@ def recibir_mensajes():
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
             # Manejo para código (ID=6)
+                   # Manejo para código (ID=6)
             if estado_usuario[numero].get("esperando_codigo", False):
-                if validar_codigo(texto_usuario):
+                if validar_codigo(texto_usuario):  # Verifica que el código sea válido
                     estado_usuario[numero]["esperando_codigo"] = False
                     estado_usuario[numero]["esperando_pregunta_7"] = True
                     
@@ -204,42 +205,46 @@ def recibir_mensajes():
                     
                     print(f"Alternativas obtenidas para pregunta 7: {alternativas_pregunta_7}")
                     
-                    # Crear los botones para las alternativas
-                    botones = [
-                        {
-                            "type": "reply",
-                            "reply": {
-                                "id": f"button_{i+1}",
-                                "title": alternativa
-                            }
-                        } for i, alternativa in enumerate(alternativas_pregunta_7)
-                    ]
-                    
-                    responder_mensaje = {
-                        "messaging_product": "whatsapp",
-                        "recipient_type": "individual",
-                        "to": numero,
-                        "type": "interactive",
-                        "interactive": {
-                            "type": "button",
-                            "body": {
-                                "text": mensaje_pregunta_7
-                            },
-                            "action": {
-                                "buttons": botones
+                    if alternativas_pregunta_7:  # Asegurarse de que hay alternativas disponibles
+                        # Crear los botones para las alternativas
+                        botones = [
+                            {
+                                "type": "reply",
+                                "reply": {
+                                    "id": f"button_{i+1}",
+                                    "title": alternativa
+                                }
+                            } for i, alternativa in enumerate(alternativas_pregunta_7)
+                        ]
+                        
+                        responder_mensaje = {
+                            "messaging_product": "whatsapp",
+                            "recipient_type": "individual",
+                            "to": numero,
+                            "type": "interactive",
+                            "interactive": {
+                                "type": "button",
+                                "body": {
+                                    "text": mensaje_pregunta_7
+                                },
+                                "action": {
+                                    "buttons": botones
+                                }
                             }
                         }
-                    }
-                    print(f"Enviando mensaje con botones: {responder_mensaje}")
-                    enviar_mensaje(responder_mensaje)
+                        print(f"Enviando mensaje con botones: {responder_mensaje}")
+                        enviar_mensaje(responder_mensaje)
+                    else:
+                        enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                 else:
                     estado_usuario[numero]["intentos_codigo"] += 1
                     if estado_usuario[numero]["intentos_codigo"] == 1:
                         enviar_mensaje_texto(numero, "Código inválido, por favor vuelva a ingresar. Intento 1/2")
                     elif estado_usuario[numero]["intentos_codigo"] == 2:
                         enviar_mensaje_texto(numero, "Código inválido, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)
+                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 return jsonify({'status': 'Intento de código procesado'}), 200
+            
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
