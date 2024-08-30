@@ -60,3 +60,24 @@ def verificar_usuario_registrado(numero):
         return False
     finally:
         conn.close()
+# Dentro de conexionbd.py
+
+def registrar_usuario(correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular):
+    conn = obtener_conexion()
+    if conn is None:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO usuario (correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular, fecha_registro, id_perfil)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, GETDATE(), 1)
+        """
+        cursor.execute(query, (correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular))
+        conn.commit()
+        return True
+    except pymssql.Error as e:
+        print("Error al registrar el usuario:", e)
+        return False
+    finally:
+        conn.close()
