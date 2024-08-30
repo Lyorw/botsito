@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify
 import http.client
 import json
 import re
-import random  # Para generar el código de validación
+import random
+import string  # Para generar el código de validación alfanumérico
 from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado
 from correo import enviar_correo  # Importa la función de envío de correo
 
@@ -54,6 +55,10 @@ def validar_codigo(codigo):
     else:
         return False
 
+def generar_codigo_validacion():
+    # Genera un código de 4 caracteres que incluye letras y números
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+
 @app.route('/webhook', methods=['POST'])
 def recibir_mensajes():
     try:
@@ -84,6 +89,7 @@ def recibir_mensajes():
                     "intentos_codigo": 0,
                     "intentos_pregunta_7": 0,
                     "intentos_pregunta_8": 0,
+                    "intentos_codigo_validacion": 0,
                     "esperando_correo": False,
                     "esperando_nombre": False,
                     "esperando_apellido": False,
@@ -233,7 +239,7 @@ def recibir_mensajes():
                         5: 7
                     }
                     if id_map.get(alternativa_id) in valid_ids:
-                        enviar_mensaje_texto(numero, "Gracias, puede proceder.")
+                        # enviar_mensaje_texto(numero, "Gracias, puede proceder.")
                         estado_usuario[numero]["esperando_pregunta_7"] = False
                         estado_usuario[numero]["esperando_pregunta_8"] = True
                         mensaje_pregunta_8 = obtener_mensaje_por_id(8)
@@ -263,15 +269,14 @@ def recibir_mensajes():
                 try:
                     alternativa_id = int(texto_usuario)
                     if 1 <= alternativa_id <= 4:
-                        # enviar_mensaje_texto(numero, "Gracias, puede proceder.")
-                        
-                        # Generar y enviar el código de validación
-                        codigo_validacion = str(random.randint(1000, 9999))
+                        # Generar y enviar el código de validación alfanumérico
+                        codigo_validacion = generar_codigo_validacion()
                         estado_usuario[numero]["codigo_validacion"] = codigo_validacion
                         enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)  # Envía el correo con el código
 
                         # Preguntar por el código de validación
                         estado_usuario[numero]["esperando_codigo_validacion"] = True
+                        estado_usuario[numero]["intentos_codigo_validacion"] = 0  # Inicializar el contador de intentos
                         enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
                         estado_usuario[numero]["esperando_pregunta_8"] = False
                     else:
@@ -296,7 +301,12 @@ def recibir_mensajes():
                     enviar_mensaje_texto(numero, "¡Felicidades! Su proceso de autenticación ha sido completado con éxito.")
                     estado_usuario.pop(numero, None)  # Finaliza el proceso
                 else:
-                    enviar_mensaje_texto(numero, "Código incorrecto, por favor intente de nuevo.")
+                    estado_usuario[numero]["intentos_codigo_validacion"] += 1
+                    if estado_usuario[numero]["intentos_codigo_validacion"] == 1:
+                        enviar_mensaje_texto(numero, "Código incorrecto, por favor intente nuevamente. Intento 1/2")
+                    elif estado_usuario[numero]["intentos_codigo_validacion"] == 2:
+                        enviar_mensaje_texto(numero, "Código incorrecto. Intentos fallidos, nos vemos pronto.")
+                        estado_usuario.pop(numero, None)  # Finaliza el proceso después de 2 intentos fallidos
                 return jsonify({'status': 'Validación de código procesada'}), 200
             
             return jsonify({'status': 'Respuesta procesada'}), 200
