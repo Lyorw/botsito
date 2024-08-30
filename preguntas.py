@@ -15,7 +15,7 @@ estado_usuario = {}
 
 @app.route('/')
 def index():
-    return "Descargando virus..."
+    return "Descargando viruss..."
 
 @app.route('/webhook', methods=['GET'])
 def verificar_token():
