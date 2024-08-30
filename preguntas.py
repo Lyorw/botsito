@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
 PAGE_ID = "421866537676248"
-ACCESS_TOKEN = "EAAYAnB4BMXoBO0ZCx8adHB7JxGG28D3IUdCTQstqr5kI1ZCSziTp4ALieZAP62NFoyinbZAGovIfZCj52UZAxVZCQ9jrGmI1V7zlZAs4db4rK48H5w1LIxFF6VASNCvMbfG6MXUJ5po1d15oOj1TpvKSQF78nITM45DaNNhjvHhu9K8v53wMLuplOkVcG3hJ2N56wpImh6SxE4QeDfOxl0Pi2S3tafYZD"
+ACCESS_TOKEN = "EAAYAnB4BMXoBO3N1OULWWpxOFfWJHm5yZCCFGcC0JWOLg697IyoaUKeBpBai6mbXwHkqod4vb0ZCa8iEtosSqYh1IvGTymcMHynSkEboqeSjL7hFxwYCOSVckT7hWSMoQdqbk3nqkCDZCX4lmyKK5LN9qbDus0kZAogjvieBtIH02FECvjBsOc902swwFZCx7akqjLTg4pk6HBoImZBLpBkXqB7xoZD"
 
 mensajes_procesados = set()
 estado_usuario = {}
@@ -31,22 +31,18 @@ def validar_nombre(nombre):
     return not any(char.isdigit() for char in nombre)
 
 def validar_numero(numero):
-    # La condición es que debe tener solo números y un mínimo de 5 y un máximo de 20 dígitos
     return numero.isdigit() and 5 <= len(numero) <= 20
 
 def validar_codigo(codigo):
-    # Asegurarse de que el código tenga al menos 2 caracteres (1 letra y 1 dígito)
     if len(codigo) < 2:
         return False
     
     letra = codigo[0].upper()
     numeros = codigo[1:]
     
-    # Verificar que solo la primera letra es alfabética y el resto son dígitos
     if not letra.isalpha() or not numeros.isdigit():
         return False
     
-    # Validar según la letra inicial
     if letra == "E":
         return 5 <= len(codigo) <= 6
     elif letra == "C":
@@ -73,61 +69,59 @@ def recibir_mensajes():
             mensaje_id = messages.get("id", "")
             texto_usuario = messages.get("text", {}).get("body", "").strip()
 
-            # Ignorar mensajes anteriores y solo procesar nuevos
             if mensaje_id in mensajes_procesados:
                 return jsonify({'status': 'Mensaje ya procesado'}), 200
             mensajes_procesados.add(mensaje_id)
 
-            # Inicialización del estado del usuario si no existe
             if numero not in estado_usuario:
                 estado_usuario[numero] = {
                     "intentos_correo": 0,
                     "intentos_nombre": 0,
                     "intentos_apellido": 0,
                     "intentos_numero": 0,
-                    "intentos_codigo": 0,  # Inicialización de intentos para código
+                    "intentos_codigo": 0,
+                    "intentos_pregunta_7": 0,
+                    "intentos_pregunta_8": 0,
                     "esperando_correo": False,
                     "esperando_nombre": False,
                     "esperando_apellido": False,
                     "esperando_numero": False,
-                    "esperando_codigo": False,  # Inicialización de estado para código
+                    "esperando_codigo": False,
+                    "esperando_pregunta_7": False,
+                    "esperando_pregunta_8": False,
                     "autenticacion_confirmada": False,
-                    "recordatorio_enviado": False
+                    "recordatorio_enviado": False,
+                    "tipo_codigo": ""
                 }
-                enviar_mensaje_inicial(numero)  # Enviar mensaje de bienvenida con botones
+                enviar_mensaje_inicial(numero)
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
-            # Verificar si el usuario ya está registrado
             if verificar_usuario_registrado(numero):
                 enviar_mensaje_texto(numero, "Usuario ya está registrado")
                 return jsonify({'status': 'Usuario registrado'}), 200
 
-            # Continuar solo si se ha seleccionado un botón
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
                 seleccion = button_reply.get("id", "")
                 
                 if seleccion == "button_yes":
-                    # Confirmar autenticación
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
                     estado_usuario[numero]["esperando_correo"] = True
                     estado_usuario[numero]["autenticacion_confirmada"] = True
-                    estado_usuario[numero]["recordatorio_enviado"] = False  # Reiniciar recordatorio
+                    estado_usuario[numero]["recordatorio_enviado"] = False
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
-                    estado_usuario.pop(numero, None)  # Eliminar estado para reiniciar
+                    estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Si no se ha seleccionado "Sí" o "No", enviar mensaje inicial
             if not estado_usuario[numero].get("autenticacion_confirmada", False):
                 if not estado_usuario[numero].get("recordatorio_enviado", False):
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Lógica para manejar el correo electrónico (ID=2)
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
@@ -135,9 +129,8 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Correo inválido, por favor vuelva a ingresar. Intento 1/2")
                     elif estado_usuario[numero]["intentos_correo"] == 2:
                         enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        estado_usuario.pop(numero, None)
                 else:
-                    # Correo es válido, pasar al ID=3
                     mensaje_nombre = obtener_mensaje_por_id(3)
                     enviar_mensaje_texto(numero, mensaje_nombre)
                     estado_usuario[numero]["intentos_nombre"] = 0
@@ -145,12 +138,10 @@ def recibir_mensajes():
                     estado_usuario[numero]["esperando_correo"] = False
                 return jsonify({'status': 'Intento de correo procesado'}), 200
 
-            # Nueva lógica para manejar el ID=3 (nombres)
             if estado_usuario[numero].get("esperando_nombre", False):
-                if validar_nombre(texto_usuario):  # Verifica que el nombre no tenga números
+                if validar_nombre(texto_usuario):
                     estado_usuario[numero]["esperando_nombre"] = False
                     estado_usuario[numero]["esperando_apellido"] = True
-                    # Pasar al ID=4 para pedir apellido
                     mensaje_apellido = obtener_mensaje_por_id(4)
                     enviar_mensaje_texto(numero, mensaje_apellido)
                 else:
@@ -159,15 +150,13 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Nombre inválido, por favor vuelva a ingresar. Intento 1/2")
                     elif estado_usuario[numero]["intentos_nombre"] == 2:
                         enviar_mensaje_texto(numero, "Nombre inválido, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
 
-            # Nueva lógica para manejar el ID=4 (apellidos)
             if estado_usuario[numero].get("esperando_apellido", False):
-                if validar_nombre(texto_usuario):  # Verifica que el apellido no tenga números
+                if validar_nombre(texto_usuario):
                     estado_usuario[numero]["esperando_apellido"] = False
                     estado_usuario[numero]["esperando_numero"] = True
-                    # Pasar al ID=5 para pedir número
                     mensaje_numero = obtener_mensaje_por_id(5)
                     enviar_mensaje_texto(numero, mensaje_numero)
                 else:
@@ -176,15 +165,13 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Apellido inválido, por favor vuelva a ingresar. Intento 1/2")
                     elif estado_usuario[numero]["intentos_apellido"] == 2:
                         enviar_mensaje_texto(numero, "Apellido inválido, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de apellido procesado'}), 200
 
-            # Nueva lógica para manejar el ID=5 (número)
             if estado_usuario[numero].get("esperando_numero", False):
-                if validar_numero(texto_usuario):  # Verifica que el número sea válido
+                if validar_numero(texto_usuario):
                     estado_usuario[numero]["esperando_numero"] = False
                     estado_usuario[numero]["esperando_codigo"] = True
-                    # Pasar al ID=6 para pedir código
                     mensaje_codigo = obtener_mensaje_por_id(6)
                     enviar_mensaje_texto(numero, mensaje_codigo)
                 else:
@@ -193,24 +180,103 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Número inválido, por favor vuelva a ingresar. Intento 1/2")
                     elif estado_usuario[numero]["intentos_numero"] == 2:
                         enviar_mensaje_texto(numero, "Número inválido, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
-            # Nueva lógica para manejar el ID=6 (código)
             if estado_usuario[numero].get("esperando_codigo", False):
-                if validar_codigo(texto_usuario):  # Verifica que el código sea válido
-                    enviar_mensaje_texto(numero, "Código válido, puede continuar.")
-                    estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
-                    # Aquí podrías pasar al siguiente ID o proceso, si lo hubiera
+                if validar_codigo(texto_usuario):
+                    estado_usuario[numero]["esperando_codigo"] = False
+                    estado_usuario[numero]["esperando_pregunta_7"] = True
+                    estado_usuario[numero]["tipo_codigo"] = texto_usuario[0].upper()
+                    
+                    mensaje_pregunta_7 = obtener_mensaje_por_id(7)
+                    alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
+                    
+                    if alternativas_pregunta_7:
+                        opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_7)])
+                        enviar_mensaje_texto(numero, f"{mensaje_pregunta_7}\n\n{opciones}")
+                        # enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
+                    else:
+                        enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                 else:
                     estado_usuario[numero]["intentos_codigo"] += 1
                     if estado_usuario[numero]["intentos_codigo"] == 1:
                         enviar_mensaje_texto(numero, "Código inválido, por favor vuelva a ingresar. Intento 1/2")
                     elif estado_usuario[numero]["intentos_codigo"] == 2:
                         enviar_mensaje_texto(numero, "Código inválido, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
+                        estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de código procesado'}), 200
 
+            if estado_usuario[numero].get("esperando_pregunta_7", False):
+                tipo_codigo = estado_usuario[numero]["tipo_codigo"]
+                valid_ids = []
+
+                if tipo_codigo == "E":
+                    valid_ids = [4, 6, 7]  # IDs válidos para tipo "E"
+                elif tipo_codigo == "C":
+                    valid_ids = [3]  # IDs válidos para tipo "C"
+                elif tipo_codigo == "D":
+                    valid_ids = [5]  # IDs válidos para tipo "D"
+
+                try:
+                    alternativa_id = int(texto_usuario)  # Aquí se está evaluando la entrada del usuario
+                    # Mapear la respuesta del usuario al ID correspondiente en la base de datos
+                    id_map = {
+                        1: 3,  # Corresponde a CAC
+                        2: 4,  # Corresponde a Call Center
+                        3: 5,  # Corresponde a Distribuidores
+                        4: 6,  # Corresponde a Puntos de Venta
+                        5: 7   # Corresponde a Cadenas
+                    }
+                    if id_map.get(alternativa_id) in valid_ids:
+                        # enviar_mensaje_texto(numero, "Gracias, puede proceder.")
+                        estado_usuario[numero]["esperando_pregunta_7"] = False
+                        estado_usuario[numero]["esperando_pregunta_8"] = True
+                        mensaje_pregunta_8 = obtener_mensaje_por_id(8)
+                        alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)
+                        if alternativas_pregunta_8:
+                            opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_8)])
+                            enviar_mensaje_texto(numero, f"{mensaje_pregunta_8}\n\n{opciones}")
+                        else:
+                            enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
+                    else:
+                        estado_usuario[numero]["intentos_pregunta_7"] += 1
+                        if estado_usuario[numero]["intentos_pregunta_7"] == 1:
+                            enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
+                        elif estado_usuario[numero]["intentos_pregunta_7"] == 2:
+                            enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
+                            estado_usuario.pop(numero, None)
+                except ValueError:
+                    estado_usuario[numero]["intentos_pregunta_7"] += 1
+                    if estado_usuario[numero]["intentos_pregunta_7"] == 1:
+                        enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
+                    elif estado_usuario[numero]["intentos_pregunta_7"] == 2:
+                        enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
+                        estado_usuario.pop(numero, None)
+                return jsonify({'status': 'Respuesta a pregunta 7 procesada'}), 200
+
+            if estado_usuario[numero].get("esperando_pregunta_8", False):
+                try:
+                    alternativa_id = int(texto_usuario)
+                    if 1 <= alternativa_id <= 4:
+                        enviar_mensaje_texto(numero, "Gracias, puede proceder.")
+                        estado_usuario.pop(numero, None)
+                    else:
+                        estado_usuario[numero]["intentos_pregunta_8"] += 1
+                        if estado_usuario[numero]["intentos_pregunta_8"] == 1:
+                            enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 4 para seleccionar su opción. (1/2 intentos)")
+                        elif estado_usuario[numero]["intentos_pregunta_8"] == 2:
+                            enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
+                            estado_usuario.pop(numero, None)
+                except ValueError:
+                    estado_usuario[numero]["intentos_pregunta_8"] += 1
+                    if estado_usuario[numero]["intentos_pregunta_8"] == 1:
+                        enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 4 para seleccionar su opción. (1/2 intentos)")
+                    elif estado_usuario[numero]["intentos_pregunta_8"] == 2:
+                        enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
+                        estado_usuario.pop(numero, None)
+                return jsonify({'status': 'Respuesta a pregunta 8 procesada'}), 200
+            
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
