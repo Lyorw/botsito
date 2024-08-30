@@ -61,33 +61,33 @@ def verificar_usuario_registrado(numero):
     finally:
         conn.close()
 
-def obtener_alternativa_por_id(id_alternativa):
+def obtener_alternativa_por_id(id):
     conn = obtener_conexion()
     if conn is None:
         return None
     
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID = %s", (id_alternativa,))
+        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID = %s", (id,))
         row = cursor.fetchone()
         return row[0] if row else None
     except pymssql.Error as e:
-        print("Error al ejecutar la consulta:", e)
+        print("Error al obtener la alternativa por ID:", e)
         return None
     finally:
         conn.close()
 
-def registrar_usuario(correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular):
+def registrar_usuario(celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil):
     conn = obtener_conexion()
     if conn is None:
         return False
-    
+
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO usuario (correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular, fecha_registro, id_perfil)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, GETDATE(), 1)
-        """, (correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular))
+            INSERT INTO usuario (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil))
         conn.commit()
         return True
     except pymssql.Error as e:
