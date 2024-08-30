@@ -60,7 +60,6 @@ def verificar_usuario_registrado(numero):
         return False
     finally:
         conn.close()
-# Dentro de conexionbd.py
 
 def registrar_usuario(correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular):
     conn = obtener_conexion()
@@ -69,15 +68,31 @@ def registrar_usuario(correo, nombre, apellido, dni, codigo_usuario, canal_venta
     
     try:
         cursor = conn.cursor()
-        query = """
+        cursor.execute("""
             INSERT INTO usuario (correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular, fecha_registro, id_perfil)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, GETDATE(), 1)
-        """
-        cursor.execute(query, (correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular))
+        """, (correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, celular))
         conn.commit()
         return True
     except pymssql.Error as e:
         print("Error al registrar el usuario:", e)
         return False
+    finally:
+        conn.close()
+
+# Nueva función a añadir para obtener el nombre de la alternativa por ID
+def obtener_alternativa_por_id(id_alternativa):
+    conn = obtener_conexion()
+    if conn is None:
+        return None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID = %s", (id_alternativa,))
+        row = cursor.fetchone()
+        return row[0] if row else None
+    except pymssql.Error as e:
+        print("Error al obtener la alternativa por ID:", e)
+        return None
     finally:
         conn.close()
