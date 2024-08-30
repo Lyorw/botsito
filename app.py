@@ -189,16 +189,21 @@ def recibir_mensajes():
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
             # Manejo para código (ID=6)
+            # Manejo para código (ID=6)
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):
                     estado_usuario[numero]["esperando_codigo"] = False
                     estado_usuario[numero]["esperando_pregunta_7"] = True
+                    
+                    print(f"Estado actualizado para {numero}: {estado_usuario[numero]}")
                     
                     # Obtener mensaje del ID=7
                     mensaje_pregunta_7 = obtener_mensaje_por_id(7)
                     
                     # Obtener alternativas de la tabla 'alternativas_preguntas' para ID=7
                     alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
+                    
+                    print(f"Alternativas obtenidas para pregunta 7: {alternativas_pregunta_7}")
                     
                     # Crear los botones para las alternativas
                     botones = [
@@ -226,6 +231,7 @@ def recibir_mensajes():
                             }
                         }
                     }
+                    print(f"Enviando mensaje con botones: {responder_mensaje}")
                     enviar_mensaje(responder_mensaje)
                 else:
                     estado_usuario[numero]["intentos_codigo"] += 1
@@ -235,7 +241,6 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Código inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de código procesado'}), 200
-
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
