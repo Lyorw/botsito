@@ -194,7 +194,7 @@ def recibir_mensajes():
                     
                     if alternativas_pregunta_7:
                         opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_7)])
-                        enviar_mensaje_texto(numero, f"{mensaje_pregunta_7}\n\n{opciones}\n\nPor favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
+                        enviar_mensaje_texto(numero, f"{mensaje_pregunta_7}\n\n{opciones}")
                     else:
                         enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                 else:
@@ -208,36 +208,28 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_pregunta_7", False):
                 tipo_codigo = estado_usuario[numero]["tipo_codigo"]
-                valid_ids = []
+                opciones_validas = []
 
                 if tipo_codigo == "E":
-                    valid_ids = [4, 6, 7]
+                    opciones_validas = [1, 2, 3, 4, 5]
                 elif tipo_codigo == "C":
-                    valid_ids = [3]
+                    opciones_validas = [3]
                 elif tipo_codigo == "D":
-                    valid_ids = [5]
+                    opciones_validas = [5]
 
                 try:
                     alternativa_id = int(texto_usuario)
-                    if 1 <= alternativa_id <= 5:
-                        if alternativa_id in valid_ids:
-                            enviar_mensaje_texto(numero, "Gracias, puede proceder.")
-                            estado_usuario[numero]["esperando_pregunta_7"] = False
-                            estado_usuario[numero]["esperando_pregunta_8"] = True
-                            mensaje_pregunta_8 = obtener_mensaje_por_id(8)
-                            alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)
-                            if alternativas_pregunta_8:
-                                opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_8)])
-                                enviar_mensaje_texto(numero, f"{mensaje_pregunta_8}\n\n{opciones}\n\nPor favor, responda con un número entre 1 y 4 para seleccionar su opción. (1/2 intentos)")
-                            else:
-                                enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
+                    if 1 <= alternativa_id <= 5 and alternativa_id in opciones_validas:
+                        enviar_mensaje_texto(numero, "Gracias, puede proceder.")
+                        estado_usuario[numero]["esperando_pregunta_7"] = False
+                        estado_usuario[numero]["esperando_pregunta_8"] = True
+                        mensaje_pregunta_8 = obtener_mensaje_por_id(8)
+                        alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)
+                        if alternativas_pregunta_8:
+                            opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_8)])
+                            enviar_mensaje_texto(numero, f"{mensaje_pregunta_8}\n\n{opciones}")
                         else:
-                            estado_usuario[numero]["intentos_pregunta_7"] += 1
-                            if estado_usuario[numero]["intentos_pregunta_7"] == 1:
-                                enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
-                            elif estado_usuario[numero]["intentos_pregunta_7"] == 2:
-                                enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                                estado_usuario.pop(numero, None)
+                            enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                     else:
                         estado_usuario[numero]["intentos_pregunta_7"] += 1
                         if estado_usuario[numero]["intentos_pregunta_7"] == 1:
