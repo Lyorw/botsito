@@ -69,12 +69,10 @@ def recibir_mensajes():
             mensaje_id = messages.get("id", "")
             texto_usuario = messages.get("text", {}).get("body", "").strip()
 
-            # Ignorar mensajes anteriores y solo procesar nuevos
             if mensaje_id in mensajes_procesados:
                 return jsonify({'status': 'Mensaje ya procesado'}), 200
             mensajes_procesados.add(mensaje_id)
 
-            # Inicialización del estado del usuario si no existe
             if numero not in estado_usuario:
                 estado_usuario[numero] = {
                     "intentos_correo": 0,
@@ -90,22 +88,20 @@ def recibir_mensajes():
                     "autenticacion_confirmada": False,
                     "recordatorio_enviado": False,
                     "esperando_pregunta_7": False,
-                    "pagina_actual": 0  # Para manejar la paginación
+                    "pagina_actual": 0
                 }
                 enviar_mensaje_inicial(numero)
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
-            # Verificar si el usuario ya está registrado
             if verificar_usuario_registrado(numero):
                 enviar_mensaje_texto(numero, "Usuario ya está registrado")
                 return jsonify({'status': 'Usuario registrado'}), 200
 
-            # Continuar solo si se ha seleccionado un botón
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
                 seleccion = button_reply.get("id", "")
-
+                
                 if seleccion == "button_yes":
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
@@ -115,25 +111,18 @@ def recibir_mensajes():
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                     estado_usuario.pop(numero, None)
-                elif seleccion == "siguiente":
+                elif seleccion == "button_siguiente":
                     estado_usuario[numero]["pagina_actual"] += 1
-                    enviar_mensaje_opciones(numero, estado_usuario[numero]["pagina_actual"])
-                elif seleccion == "anterior":
+                elif seleccion == "button_anterior":
                     estado_usuario[numero]["pagina_actual"] -= 1
-                    enviar_mensaje_opciones(numero, estado_usuario[numero]["pagina_actual"])
-                else:
-                    # Aquí procesarías la opción seleccionada en lugar de navegación
-                    enviar_mensaje_texto(numero, "Gracias por seleccionar una opción.")
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Si no se ha seleccionado "Sí" o "No", enviar mensaje inicial
             if not estado_usuario[numero].get("autenticacion_confirmada", False):
                 if not estado_usuario[numero].get("recordatorio_enviado", False):
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Ajustes para manejar correo electrónico
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
@@ -150,7 +139,6 @@ def recibir_mensajes():
                     estado_usuario[numero]["esperando_correo"] = False
                 return jsonify({'status': 'Intento de correo procesado'}), 200
 
-            # Manejo para nombres (ID=3)
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["esperando_nombre"] = False
@@ -166,7 +154,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
 
-            # Manejo para apellidos (ID=4)
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["esperando_apellido"] = False
@@ -182,7 +169,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de apellido procesado'}), 200
 
-            # Manejo para número (ID=5)
             if estado_usuario[numero].get("esperando_numero", False):
                 if validar_numero(texto_usuario):
                     estado_usuario[numero]["esperando_numero"] = False
@@ -198,13 +184,15 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
-            # Manejo para código (ID=6)
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):
                     estado_usuario[numero]["esperando_codigo"] = False
                     estado_usuario[numero]["esperando_pregunta_7"] = True
-                    estado_usuario[numero]["pagina_actual"] = 0  # Inicializar a la primera página
-                    enviar_mensaje_opciones(numero, estado_usuario[numero]["pagina_actual"])
+                    estado_usuario[numero]["pagina_actual"] = 0
+
+                    mensaje_pregunta_7 = obtener_mensaje_por_id(7)
+                    alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
+                    enviar_mensaje_con_paginacion(numero, mensaje_pregunta_7, alternativas_pregunta_7)
                 else:
                     estado_usuario[numero]["intentos_codigo"] += 1
                     if estado_usuario[numero]["intentos_codigo"] == 1:
@@ -213,7 +201,7 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Código inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de código procesado'}), 200
-
+            
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
@@ -221,19 +209,16 @@ def recibir_mensajes():
         print("Error en el procesamiento del mensaje:", e)
         return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
 
-def enviar_mensaje_opciones(numero, pagina):
-    mensaje_pregunta_7 = obtener_mensaje_por_id(7)
-    alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
+def enviar_mensaje_con_paginacion(numero, mensaje, alternativas, pagina_actual=0):
+    botones_por_pagina = 3
+    inicio = pagina_actual * botones_por_pagina
+    fin = inicio + botones_por_pagina
+    
+    alternativas_pagina = alternativas[inicio:fin]
+    
+    hay_pagina_siguiente = fin < len(alternativas)
+    hay_pagina_anterior = inicio > 0
 
-    # Número máximo de botones por página
-    max_botones_por_pagina = 3
-
-    # Calcular las opciones para mostrar en la página actual
-    inicio = pagina * max_botones_por_pagina
-    fin = inicio + max_botones_por_pagina
-    opciones_pagina_actual = alternativas_pregunta_7[inicio:fin]
-
-    # Crear los botones para las alternativas en la página actual
     botones = [
         {
             "type": "reply",
@@ -241,24 +226,23 @@ def enviar_mensaje_opciones(numero, pagina):
                 "id": f"button_{inicio + i + 1}",
                 "title": alternativa
             }
-        } for i, alternativa in enumerate(opciones_pagina_actual)
+        } for i, alternativa in enumerate(alternativas_pagina)
     ]
 
-    # Añadir botones de navegación
-    if pagina > 0:
+    if hay_pagina_anterior:
         botones.append({
             "type": "reply",
             "reply": {
-                "id": "anterior",
+                "id": "button_anterior",
                 "title": "Anterior"
             }
         })
 
-    if fin < len(alternativas_pregunta_7):
+    if hay_pagina_siguiente:
         botones.append({
             "type": "reply",
             "reply": {
-                "id": "siguiente",
+                "id": "button_siguiente",
                 "title": "Siguiente"
             }
         })
@@ -271,13 +255,15 @@ def enviar_mensaje_opciones(numero, pagina):
         "interactive": {
             "type": "button",
             "body": {
-                "text": mensaje_pregunta_7
+                "text": mensaje
             },
             "action": {
                 "buttons": botones
             }
         }
     }
+    
+    print(f"Enviando mensaje con botones: {responder_mensaje}")
     enviar_mensaje(responder_mensaje)
 
 def enviar_mensaje_texto(numero, mensaje_texto):
