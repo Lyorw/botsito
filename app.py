@@ -54,7 +54,16 @@ def recibir_mensajes():
 
             # Inicialización del estado del usuario si no existe
             if numero not in estado_usuario:
-                estado_usuario[numero] = {"intentos": 0, "esperando_correo": False, "autenticacion_confirmada": False, "recordatorio_enviado": False, "esperando_nombre": False, "esperando_apellido": False}
+                estado_usuario[numero] = {
+                    "intentos_correo": 0,
+                    "intentos_nombre": 0,
+                    "intentos_apellido": 0,
+                    "esperando_correo": False,
+                    "esperando_nombre": False,
+                    "esperando_apellido": False,
+                    "autenticacion_confirmada": False,
+                    "recordatorio_enviado": False
+                }
                 enviar_mensaje_inicial(numero)  # Enviar mensaje de bienvenida con botones
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
@@ -91,17 +100,17 @@ def recibir_mensajes():
             # Ajustes dentro del método 'recibir_mensajes' para correo
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
-                    estado_usuario[numero]["intentos"] += 1
-                    if estado_usuario[numero]["intentos"] == 1:
+                    estado_usuario[numero]["intentos_correo"] += 1
+                    if estado_usuario[numero]["intentos_correo"] == 1:
                         enviar_mensaje_texto(numero, "Correo inválido, por favor vuelva a ingresar. Intento 1/2")
-                    elif estado_usuario[numero]["intentos"] == 2:
+                    elif estado_usuario[numero]["intentos_correo"] == 2:
                         enviar_mensaje_texto(numero, "Correo inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 else:
                     # Correo es válido, pasar al ID=3
                     mensaje_nombre = obtener_mensaje_por_id(3)
                     enviar_mensaje_texto(numero, mensaje_nombre)
-                    estado_usuario[numero]["intentos"] = 0
+                    estado_usuario[numero]["intentos_nombre"] = 0
                     estado_usuario[numero]["esperando_nombre"] = True
                     estado_usuario[numero]["esperando_correo"] = False
                 return jsonify({'status': 'Intento de correo procesado'}), 200
@@ -110,17 +119,17 @@ def recibir_mensajes():
             if estado_usuario[numero].get("esperando_nombre", False):
                 print(f"Debug: Esperando nombre para el número {numero}, texto ingresado: {texto_usuario}")
                 if validar_nombre(texto_usuario):  # Verifica que el nombre no tenga números
-                    enviar_mensaje_texto(numero, "Nombre válido, puede continuar.")
+                    # enviar_mensaje_texto(numero, "Nombre válido, puede continuar.")
                     estado_usuario[numero]["esperando_nombre"] = False
                     estado_usuario[numero]["esperando_apellido"] = True
                     # Pasar al ID=4 para pedir apellido
                     mensaje_apellido = obtener_mensaje_por_id(4)
                     enviar_mensaje_texto(numero, mensaje_apellido)
                 else:
-                    estado_usuario[numero]["intentos"] += 1
-                    if estado_usuario[numero]["intentos"] == 1:
+                    estado_usuario[numero]["intentos_nombre"] += 1
+                    if estado_usuario[numero]["intentos_nombre"] == 1:
                         enviar_mensaje_texto(numero, "Nombre inválido, por favor vuelva a ingresar. Intento 1/2")
-                    elif estado_usuario[numero]["intentos"] == 2:
+                    elif estado_usuario[numero]["intentos_nombre"] == 2:
                         enviar_mensaje_texto(numero, "Nombre inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
@@ -133,10 +142,10 @@ def recibir_mensajes():
                     estado_usuario.pop(numero, None)  # Limpiar estado en caso de éxito
                     # Aquí podrías pasar al siguiente ID o proceso
                 else:
-                    estado_usuario[numero]["intentos"] += 1
-                    if estado_usuario[numero]["intentos"] == 1:
+                    estado_usuario[numero]["intentos_apellido"] += 1
+                    if estado_usuario[numero]["intentos_apellido"] == 1:
                         enviar_mensaje_texto(numero, "Apellido inválido, por favor vuelva a ingresar. Intento 1/2")
-                    elif estado_usuario[numero]["intentos"] == 2:
+                    elif estado_usuario[numero]["intentos_apellido"] == 2:
                         enviar_mensaje_texto(numero, "Apellido inválido, nos vemos pronto.")
                         estado_usuario.pop(numero, None)  # Reiniciar después del segundo intento fallido
                 return jsonify({'status': 'Intento de apellido procesado'}), 200
