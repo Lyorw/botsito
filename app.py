@@ -30,9 +30,10 @@ def verificar_token():
 def validar_nombre(nombre):
     return not any(char.isdigit() for char in nombre)
 
+
 def validar_numero(numero):
-    # La condición es que debe tener solo números y un máximo de 20 dígitos
-    return numero.isdigit() and len(numero) <= 20
+    # La condición es que debe tener solo números y un mínimo de 5 y un máximo de 20 dígitos
+    return numero.isdigit() and 5 <= len(numero) <= 20
 
 @app.route('/webhook', methods=['POST'])
 def recibir_mensajes():
@@ -124,7 +125,7 @@ def recibir_mensajes():
             # Nueva lógica para manejar el ID=3 (nombres)
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):  # Verifica que el nombre no tenga números
-                    enviar_mensaje_texto(numero, "Nombre válido, puede continuar.")
+                    # enviar_mensaje_texto(numero, "Nombre válido, puede continuar.")
                     estado_usuario[numero]["esperando_nombre"] = False
                     estado_usuario[numero]["esperando_apellido"] = True
                     # Pasar al ID=4 para pedir apellido
@@ -142,7 +143,7 @@ def recibir_mensajes():
             # Nueva lógica para manejar el ID=4 (apellidos)
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):  # Verifica que el apellido no tenga números
-                    enviar_mensaje_texto(numero, "Apellido válido, puede continuar.")
+                    # enviar_mensaje_texto(numero, "Apellido válido, puede continuar.")
                     estado_usuario[numero]["esperando_apellido"] = False
                     estado_usuario[numero]["esperando_numero"] = True
                     # Pasar al ID=5 para pedir número
