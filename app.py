@@ -190,7 +190,7 @@ def recibir_mensajes():
 
             # Manejo para código (ID=6)
             if estado_usuario[numero].get("esperando_codigo", False):
-                if validar_codigo(texto_usuario):  # Verifica que el código sea válido
+                if validar_codigo(texto_usuario):
                     estado_usuario[numero]["esperando_codigo"] = False
                     estado_usuario[numero]["esperando_pregunta_7"] = True
                     
