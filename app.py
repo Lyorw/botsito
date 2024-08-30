@@ -3,9 +3,15 @@ import http.client
 import json
 import re
 import random
-import string
-from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado, registrar_usuario, obtener_alternativa_por_id
-from correo import enviar_correo
+import string  # Para generar el código de validación alfanumérico
+from conexionbd import (
+    obtener_mensaje_por_id,
+    obtener_alternativas_por_id_pregunta,
+    verificar_usuario_registrado,
+    registrar_usuario,
+    obtener_alternativa_por_id
+)
+from correo import enviar_correo  # Importa la función de envío de correo
 
 app = Flask(__name__)
 
@@ -56,6 +62,7 @@ def validar_codigo(codigo):
         return False
 
 def generar_codigo_validacion():
+    # Genera un código de 4 caracteres que incluye letras y números
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
 
 @app.route('/webhook', methods=['POST'])
@@ -101,13 +108,9 @@ def recibir_mensajes():
                     "recordatorio_enviado": False,
                     "tipo_codigo": "",
                     "correo": "",
-                    "nombre": "",
-                    "apellido": "",
-                    "dni": "",
-                    "codigo_usuario": "",
-                    "canal_ventas": "",
-                    "site_reportado": "",
-                    "codigo_validacion": ""
+                    "codigo_validacion": "",
+                    "id_respuesta_canal": None,  # Inicialización de la respuesta de canal
+                    "id_respuesta_site": None  # Inicialización de la respuesta de sitio
                 }
                 enviar_mensaje_inicial(numero)
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
@@ -133,7 +136,7 @@ def recibir_mensajes():
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
             if not estado_usuario[numero].get("autenticacion_confirmada", False):
-                if not estado_usuario[numero]["recordatorio_enviado"]:
+                if not estado_usuario[numero].get("recordatorio_enviado", False):
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
@@ -157,7 +160,6 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):
-                    estado_usuario[numero]["nombre"] = texto_usuario
                     estado_usuario[numero]["esperando_nombre"] = False
                     estado_usuario[numero]["esperando_apellido"] = True
                     mensaje_apellido = obtener_mensaje_por_id(4)
@@ -173,7 +175,6 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):
-                    estado_usuario[numero]["apellido"] = texto_usuario
                     estado_usuario[numero]["esperando_apellido"] = False
                     estado_usuario[numero]["esperando_numero"] = True
                     mensaje_numero = obtener_mensaje_por_id(5)
@@ -189,7 +190,6 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_numero", False):
                 if validar_numero(texto_usuario):
-                    estado_usuario[numero]["dni"] = texto_usuario
                     estado_usuario[numero]["esperando_numero"] = False
                     estado_usuario[numero]["esperando_codigo"] = True
                     mensaje_codigo = obtener_mensaje_por_id(6)
@@ -205,7 +205,6 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):
-                    estado_usuario[numero]["codigo_usuario"] = texto_usuario
                     estado_usuario[numero]["esperando_codigo"] = False
                     estado_usuario[numero]["esperando_pregunta_7"] = True
                     estado_usuario[numero]["tipo_codigo"] = texto_usuario[0].upper()
@@ -228,44 +227,18 @@ def recibir_mensajes():
                 return jsonify({'status': 'Intento de código procesado'}), 200
 
             if estado_usuario[numero].get("esperando_pregunta_7", False):
-                tipo_codigo = estado_usuario[numero]["tipo_codigo"]
-                valid_ids = []
-
-                if tipo_codigo == "E":
-                    valid_ids = [4, 6, 7]
-                elif tipo_codigo == "C":
-                    valid_ids = [3]
-                elif tipo_codigo == "D":
-                    valid_ids = [5]
-
                 try:
                     alternativa_id = int(texto_usuario)
-                    id_map = {
-                        1: 3,
-                        2: 4,
-                        3: 5,
-                        4: 6,
-                        5: 7
-                    }
-                    if id_map.get(alternativa_id) in valid_ids:
-                        # Obtener el valor del canal de ventas y guardarlo
-                        estado_usuario[numero]["canal_ventas"] = obtener_alternativa_por_id(id_map[alternativa_id])
-                        estado_usuario[numero]["esperando_pregunta_7"] = False
-                        estado_usuario[numero]["esperando_pregunta_8"] = True
-                        mensaje_pregunta_8 = obtener_mensaje_por_id(8)
-                        alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)
-                        if alternativas_pregunta_8:
-                            opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_8)])
-                            enviar_mensaje_texto(numero, f"{mensaje_pregunta_8}\n\n{opciones}")
-                        else:
-                            enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
+                    estado_usuario[numero]["id_respuesta_canal"] = alternativa_id  # Asignar ID de canal
+                    estado_usuario[numero]["esperando_pregunta_7"] = False
+                    estado_usuario[numero]["esperando_pregunta_8"] = True
+                    mensaje_pregunta_8 = obtener_mensaje_por_id(8)
+                    alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)
+                    if alternativas_pregunta_8:
+                        opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_8)])
+                        enviar_mensaje_texto(numero, f"{mensaje_pregunta_8}\n\n{opciones}")
                     else:
-                        estado_usuario[numero]["intentos_pregunta_7"] += 1
-                        if estado_usuario[numero]["intentos_pregunta_7"] == 1:
-                            enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 5 para seleccionar su canal donde corresponda. (1/2 intentos)")
-                        elif estado_usuario[numero]["intentos_pregunta_7"] == 2:
-                            enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                            estado_usuario.pop(numero, None)
+                        enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                 except ValueError:
                     estado_usuario[numero]["intentos_pregunta_7"] += 1
                     if estado_usuario[numero]["intentos_pregunta_7"] == 1:
@@ -278,26 +251,15 @@ def recibir_mensajes():
             if estado_usuario[numero].get("esperando_pregunta_8", False):
                 try:
                     alternativa_id = int(texto_usuario)
-                    if 1 <= alternativa_id <= 4:
-                        # Obtener el valor del sitio reportado y guardarlo
-                        estado_usuario[numero]["site_reportado"] = obtener_alternativa_por_id(alternativa_id)
-                        
-                        # Generar y enviar el código de validación alfanumérico
-                        codigo_validacion = generar_codigo_validacion()
-                        estado_usuario[numero]["codigo_validacion"] = codigo_validacion
-                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)
+                    estado_usuario[numero]["id_respuesta_site"] = alternativa_id  # Asignar ID de sitio reportado
+                    codigo_validacion = generar_codigo_validacion()
+                    estado_usuario[numero]["codigo_validacion"] = codigo_validacion
+                    enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)  # Envía el correo con el código
 
-                        estado_usuario[numero]["esperando_codigo_validacion"] = True
-                        estado_usuario[numero]["intentos_codigo_validacion"] = 0
-                        enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
-                        estado_usuario[numero]["esperando_pregunta_8"] = False
-                    else:
-                        estado_usuario[numero]["intentos_pregunta_8"] += 1
-                        if estado_usuario[numero]["intentos_pregunta_8"] == 1:
-                            enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 4 para seleccionar su opción. (1/2 intentos)")
-                        elif estado_usuario[numero]["intentos_pregunta_8"] == 2:
-                            enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                            estado_usuario.pop(numero, None)
+                    estado_usuario[numero]["esperando_codigo_validacion"] = True
+                    estado_usuario[numero]["intentos_codigo_validacion"] = 0  # Inicializar el contador de intentos
+                    enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
+                    estado_usuario[numero]["esperando_pregunta_8"] = False
                 except ValueError:
                     estado_usuario[numero]["intentos_pregunta_8"] += 1
                     if estado_usuario[numero]["intentos_pregunta_8"] == 1:
@@ -309,27 +271,27 @@ def recibir_mensajes():
 
             # Validación del código de correo enviado
             if estado_usuario[numero].get("esperando_codigo_validacion", False):
-                if texto_usuario.upper() == estado_usuario[numero]["codigo_validacion"]:
-                    enviar_mensaje_texto(numero, "¡Felicidades! Su proceso de autenticación ha sido completado con éxito.")
-            
-                    # Asignar los valores correctos para canal_ventas y site_reportado
-                    canal_ventas = obtener_alternativa_por_id(estado_usuario[numero]["id_respuesta_canal"])
-                    site_reportado = obtener_alternativa_por_id(estado_usuario[numero]["id_respuesta_site"])
-            
-                    # Guardar en la base de datos
-                    registro_exitoso = registrar_usuario(
-                        numero,
-                        estado_usuario[numero]["correo"],
-                        estado_usuario[numero]["nombre"],
-                        estado_usuario[numero]["apellido"],
-                        estado_usuario[numero]["dni"],
-                        estado_usuario[numero]["codigo_usuario"],
-                        canal_ventas,
-                        site_reportado
-                    )
-                    if registro_exitoso:
-                        enviar_mensaje_texto(numero, "Sus datos se han registrado correctamente.")
-                    else:
+                if texto_usuario == estado_usuario[numero]["codigo_validacion"]:
+                    try:
+                        # Obtener las respuestas en texto para canal y site usando las IDs almacenadas
+                        canal_texto = obtener_alternativa_por_id(estado_usuario[numero]["id_respuesta_canal"])
+                        site_texto = obtener_alternativa_por_id(estado_usuario[numero]["id_respuesta_site"])
+
+                        # Registrar al usuario en la base de datos
+                        registrar_usuario(
+                            numero,
+                            estado_usuario[numero]["correo"],
+                            estado_usuario[numero].get("nombre"),
+                            estado_usuario[numero].get("apellido"),
+                            estado_usuario[numero].get("dni"),
+                            estado_usuario[numero].get("codigo_usuario"),
+                            canal_texto,
+                            site_texto,
+                            estado_usuario[numero]["id_perfil"]
+                        )
+                        enviar_mensaje_texto(numero, "¡Felicidades! Su proceso de autenticación ha sido completado con éxito.")
+                    except Exception as e:
+                        print(f"Error al registrar el usuario: {e}")
                         enviar_mensaje_texto(numero, "Hubo un error al registrar sus datos. Por favor, inténtelo de nuevo más tarde.")
                     estado_usuario.pop(numero, None)  # Finaliza el proceso
                 else:
