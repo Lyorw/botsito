@@ -36,10 +36,13 @@ def validar_numero(numero):
 def validar_codigo(codigo):
     if len(codigo) < 2:
         return False
+    
     letra = codigo[0].upper()
     numeros = codigo[1:]
+    
     if not letra.isalpha() or not numeros.isdigit():
         return False
+    
     if letra == "E":
         return 5 <= len(codigo) <= 6
     elif letra == "C":
@@ -84,9 +87,9 @@ def recibir_mensajes():
                     "esperando_apellido": False,
                     "esperando_numero": False,
                     "esperando_codigo": False,
-                    "esperando_respuesta": False,  # Nuevo estado para esperar respuesta de botones ID=7
                     "autenticacion_confirmada": False,
-                    "recordatorio_enviado": False
+                    "recordatorio_enviado": False,
+                    "esperando_pregunta_7": False
                 }
                 enviar_mensaje_inicial(numero)
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
@@ -113,12 +116,14 @@ def recibir_mensajes():
                     estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
+            # Si no se ha seleccionado "Sí" o "No", enviar mensaje inicial
             if not estado_usuario[numero].get("autenticacion_confirmada", False):
                 if not estado_usuario[numero].get("recordatorio_enviado", False):
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
+            # Ajustes para manejar correo electrónico
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
@@ -135,6 +140,7 @@ def recibir_mensajes():
                     estado_usuario[numero]["esperando_correo"] = False
                 return jsonify({'status': 'Intento de correo procesado'}), 200
 
+            # Manejo para nombres (ID=3)
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["esperando_nombre"] = False
@@ -150,6 +156,7 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
 
+            # Manejo para apellidos (ID=4)
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["esperando_apellido"] = False
@@ -165,6 +172,7 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de apellido procesado'}), 200
 
+            # Manejo para número (ID=5)
             if estado_usuario[numero].get("esperando_numero", False):
                 if validar_numero(texto_usuario):
                     estado_usuario[numero]["esperando_numero"] = False
@@ -180,14 +188,45 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
+            # Manejo para código (ID=6)
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):
-                    # Enviar el mensaje ID=7 y las alternativas como botones
                     estado_usuario[numero]["esperando_codigo"] = False
-                    estado_usuario[numero]["esperando_respuesta"] = True
-                    mensaje_respuesta = obtener_mensaje_por_id(7)
-                    alternativas_respuesta = obtener_alternativas_por_id_pregunta(7)
-                    enviar_mensaje_con_botones(numero, mensaje_respuesta, alternativas_respuesta)
+                    estado_usuario[numero]["esperando_pregunta_7"] = True
+                    
+                    # Obtener mensaje del ID=7
+                    mensaje_pregunta_7 = obtener_mensaje_por_id(7)
+                    
+                    # Obtener alternativas de la tabla 'alternativas_preguntas' para ID=7
+                    alternativas_pregunta_7 = obtener_alternativas_por_id_pregunta(7)
+                    
+                    # Crear los botones para las alternativas
+                    botones = [
+                        {
+                            "type": "reply",
+                            "reply": {
+                                "id": f"button_{i+1}",
+                                "title": alternativa
+                            }
+                        } for i, alternativa in enumerate(alternativas_pregunta_7)
+                    ]
+                    
+                    responder_mensaje = {
+                        "messaging_product": "whatsapp",
+                        "recipient_type": "individual",
+                        "to": numero,
+                        "type": "interactive",
+                        "interactive": {
+                            "type": "button",
+                            "body": {
+                                "text": mensaje_pregunta_7
+                            },
+                            "action": {
+                                "buttons": botones
+                            }
+                        }
+                    }
+                    enviar_mensaje(responder_mensaje)
                 else:
                     estado_usuario[numero]["intentos_codigo"] += 1
                     if estado_usuario[numero]["intentos_codigo"] == 1:
@@ -212,35 +251,6 @@ def enviar_mensaje_texto(numero, mensaje_texto):
         "type": "text",
         "text": {
             "body": mensaje_texto
-        }
-    }
-    enviar_mensaje(responder_mensaje)
-
-def enviar_mensaje_con_botones(numero, mensaje_texto, alternativas):
-    botones = [
-        {
-            "type": "reply",
-            "reply": {
-                "id": f"opcion_{i}",
-                "title": alternativa
-            }
-        }
-        for i, alternativa in enumerate(alternativas)
-    ]
-
-    responder_mensaje = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": numero,
-        "type": "interactive",
-        "interactive": {
-            "type": "button",
-            "body": {
-                "text": mensaje_texto
-            },
-            "action": {
-                "buttons": botones
-            }
         }
     }
     enviar_mensaje(responder_mensaje)
