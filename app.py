@@ -212,15 +212,23 @@ def recibir_mensajes():
                 valid_ids = []
 
                 if tipo_codigo == "E":
-                    valid_ids = [1, 2, 3, 4, 5]  # Corresponde a las alternativas visibles
+                    valid_ids = [4, 6, 7]  # IDs válidos para tipo "E"
                 elif tipo_codigo == "C":
-                    valid_ids = [3]
+                    valid_ids = [3]  # IDs válidos para tipo "C"
                 elif tipo_codigo == "D":
-                    valid_ids = [5]
+                    valid_ids = [5]  # IDs válidos para tipo "D"
 
                 try:
-                    alternativa_id = int(texto_usuario)
-                    if alternativa_id in valid_ids:
+                    alternativa_id = int(texto_usuario)  # Aquí se está evaluando la entrada del usuario
+                    # Mapear la respuesta del usuario al ID correspondiente en la base de datos
+                    id_map = {
+                        1: 3,  # Corresponde a CAC
+                        2: 4,  # Corresponde a Call Center
+                        3: 5,  # Corresponde a Distribuidores
+                        4: 6,  # Corresponde a Puntos de Venta
+                        5: 7   # Corresponde a Cadenas
+                    }
+                    if id_map.get(alternativa_id) in valid_ids:
                         enviar_mensaje_texto(numero, "Gracias, puede proceder.")
                         estado_usuario[numero]["esperando_pregunta_7"] = False
                         estado_usuario[numero]["esperando_pregunta_8"] = True
@@ -229,7 +237,6 @@ def recibir_mensajes():
                         if alternativas_pregunta_8:
                             opciones = "\n".join([f"{i+1}️⃣ {alternativa}" for i, alternativa in enumerate(alternativas_pregunta_8)])
                             enviar_mensaje_texto(numero, f"{mensaje_pregunta_8}\n\n{opciones}")
-                            enviar_mensaje_texto(numero, "Por favor, responda con un número entre 1 y 4 para seleccionar su opción. (1/2 intentos)")
                         else:
                             enviar_mensaje_texto(numero, "No se encontraron alternativas para la siguiente pregunta.")
                     else:
