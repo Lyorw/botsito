@@ -189,7 +189,6 @@ def recibir_mensajes():
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
             # Manejo para código (ID=6)
-                   # Manejo para código (ID=6)
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):  # Verifica que el código sea válido
                     estado_usuario[numero]["esperando_codigo"] = False
