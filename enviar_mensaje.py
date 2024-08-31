@@ -1,6 +1,6 @@
-
 import http.client
 import json
+
 PAGE_ID = "421866537676248"
 ACCESS_TOKEN = "EAAYAnB4BMXoBOz3EniX02JC9u9QhS3ZBZCgHsdmF4UYPAsKIetZApKhlCGZAbnHfmAZAZCeD6AZCIcROdea8kSSpb9wZC98GZBdheZAeW7hR0BCann831LMsF8iM9VSbZA7yLTlMzckIRxI32sfVr9ZC41t2NTbMkZBSBTxIEGY74n2pR4LdLfAhVyXABVqElpFalqFjRUCx64luZCZCoelry1LB6xqBZBdlZC2oZD"
 
@@ -15,6 +15,7 @@ def enviar_mensaje_texto(numero, mensaje_texto):
         }
     }
     enviar_mensaje(responder_mensaje)
+
 def enviar_mensaje(mensaje):
     conn = http.client.HTTPSConnection("graph.facebook.com")
     payload = json.dumps(mensaje)
