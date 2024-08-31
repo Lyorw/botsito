@@ -278,17 +278,18 @@ def recibir_mensajes():
             if estado_usuario[numero].get("esperando_pregunta_8", False):
                 try:
                     alternativa_id = int(texto_usuario)
-                    if 1 <= alternativa_id <= 4:
-                        estado_usuario[numero]["site_reportado"] = obtener_alternativa_por_id(alternativa_id)  # Guardar la respuesta correcta
+                    alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)  # Aseguramos obtener alternativas
+                    if 1 <= alternativa_id <= len(alternativas_pregunta_8):
+                        estado_usuario[numero]["site_reportado"] = alternativas_pregunta_8[alternativa_id - 1]  # Guardar la respuesta correcta
+                        estado_usuario[numero]["esperando_pregunta_8"] = False
+                        estado_usuario[numero]["esperando_codigo_validacion"] = True
                         
-                        # Generar y enviar código de validación
+                        # Generar y enviar el código de validación
                         codigo_validacion = generar_codigo_validacion()
                         estado_usuario[numero]["codigo_validacion"] = codigo_validacion
-                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)
-                        
+                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)  # Enviar correo con el código
                         enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
-                        estado_usuario[numero]["esperando_codigo_validacion"] = True
-                        estado_usuario[numero]["esperando_pregunta_8"] = False
+                        
                     else:
                         estado_usuario[numero]["intentos_pregunta_8"] += 1
                         if estado_usuario[numero]["intentos_pregunta_8"] == 1:
@@ -304,7 +305,7 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a pregunta 8 procesada'}), 200
-            
+
             # Validación del código de correo enviado
             if estado_usuario[numero].get("esperando_codigo_validacion", False):
                 if texto_usuario.upper() == estado_usuario[numero]["codigo_validacion"]:
