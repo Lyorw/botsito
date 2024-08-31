@@ -6,6 +6,7 @@ import random
 import string
 from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado, registrar_usuario, obtener_alternativa_por_id
 from correo import enviar_correo  # Importa la función de envío de correo
+from gerencia import manejar_usuario_registrado
 
 app = Flask(__name__)
 
@@ -81,7 +82,9 @@ def recibir_mensajes():
 
             # Verificar si el usuario ya está registrado
             if verificar_usuario_registrado(numero):
-                enviar_mensaje_texto(numero, "Usuario ya está registrado")
+                # enviar_mensaje_texto(numero, "Usuario ya está registrado")
+                manejar_usuario_registrado(numero, texto_usuario)
+                
                 return jsonify({'status': 'Usuario registrado'}), 200
 
             if numero not in estado_usuario:
