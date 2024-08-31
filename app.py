@@ -107,7 +107,13 @@ def recibir_mensajes():
                     "recordatorio_enviado": False,
                     "tipo_codigo": "",
                     "correo": "",
-                    "codigo_validacion": ""
+                    "codigo_validacion": "",
+                    "nombre": "",
+                    "apellido": "",
+                    "dni": "",
+                    "codigo_usuario": "",
+                    "canal_ventas": "",
+                    "site_reportado": ""
                 }
                 enviar_mensaje_inicial(numero)
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
@@ -153,6 +159,7 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):
+                    estado_usuario[numero]["nombre"] = texto_usuario
                     estado_usuario[numero]["esperando_nombre"] = False
                     estado_usuario[numero]["esperando_apellido"] = True
                     mensaje_apellido = obtener_mensaje_por_id(4)
@@ -168,6 +175,7 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):
+                    estado_usuario[numero]["apellido"] = texto_usuario
                     estado_usuario[numero]["esperando_apellido"] = False
                     estado_usuario[numero]["esperando_numero"] = True
                     mensaje_numero = obtener_mensaje_por_id(5)
@@ -183,6 +191,7 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_numero", False):
                 if validar_numero(texto_usuario):
+                    estado_usuario[numero]["dni"] = texto_usuario
                     estado_usuario[numero]["esperando_numero"] = False
                     estado_usuario[numero]["esperando_codigo"] = True
                     mensaje_codigo = obtener_mensaje_por_id(6)
@@ -198,6 +207,7 @@ def recibir_mensajes():
 
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):
+                    estado_usuario[numero]["codigo_usuario"] = texto_usuario
                     estado_usuario[numero]["esperando_codigo"] = False
                     estado_usuario[numero]["esperando_pregunta_7"] = True
                     estado_usuario[numero]["tipo_codigo"] = texto_usuario[0].upper()
@@ -240,7 +250,8 @@ def recibir_mensajes():
                         5: 7
                     }
                     if id_map.get(alternativa_id) in valid_ids:
-                        estado_usuario[numero]["canal_ventas"] = obtener_alternativa_por_id(id_map.get(alternativa_id))
+                        alternativa_canal = obtener_alternativa_por_id(alternativa_id)
+                        estado_usuario[numero]["canal_ventas"] = alternativa_canal
                         estado_usuario[numero]["esperando_pregunta_7"] = False
                         estado_usuario[numero]["esperando_pregunta_8"] = True
                         mensaje_pregunta_8 = obtener_mensaje_por_id(8)
@@ -270,12 +281,17 @@ def recibir_mensajes():
                 try:
                     alternativa_id = int(texto_usuario)
                     if 1 <= alternativa_id <= 4:
-                        estado_usuario[numero]["site_reportado"] = obtener_alternativa_por_id(alternativa_id)
+                        alternativa_site = obtener_alternativa_por_id(alternativa_id)
+                        estado_usuario[numero]["site_reportado"] = alternativa_site
+
+                        # Generar y enviar el código de validación alfanumérico
                         codigo_validacion = generar_codigo_validacion()
                         estado_usuario[numero]["codigo_validacion"] = codigo_validacion
-                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)
+                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)  # Envía el correo con el código
+
+                        # Preguntar por el código de validación
                         estado_usuario[numero]["esperando_codigo_validacion"] = True
-                        estado_usuario[numero]["intentos_codigo_validacion"] = 0
+                        estado_usuario[numero]["intentos_codigo_validacion"] = 0  # Inicializar el contador de intentos
                         enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
                         estado_usuario[numero]["esperando_pregunta_8"] = False
                     else:
@@ -294,24 +310,25 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a pregunta 8 procesada'}), 200
 
+            # Validación del código de correo enviado
             if estado_usuario[numero].get("esperando_codigo_validacion", False):
                 if texto_usuario.upper() == estado_usuario[numero]["codigo_validacion"]:
-                    try:
-                        registrar_usuario(
-                            numero,
-                            estado_usuario[numero]["correo"],
-                            estado_usuario[numero]["nombre"],
-                            estado_usuario[numero]["apellido"],
-                            estado_usuario[numero]["dni"],
-                            estado_usuario[numero]["codigo_usuario"],
-                            estado_usuario[numero]["canal_ventas"],
-                            estado_usuario[numero]["site_reportado"],
-                            1
-                        )
+                    # Registrar al usuario en la base de datos
+                    usuario_data = {
+                        "celular": numero,
+                        "correo": estado_usuario[numero]["correo"],
+                        "nombre": estado_usuario[numero]["nombre"],
+                        "apellido": estado_usuario[numero]["apellido"],
+                        "dni": estado_usuario[numero]["dni"],
+                        "codigo_usuario": estado_usuario[numero]["codigo_usuario"],
+                        "canal_ventas": estado_usuario[numero]["canal_ventas"],
+                        "site_reportado": estado_usuario[numero]["site_reportado"],
+                        "id_perfil": 1  # Asignar un perfil fijo por ahora
+                    }
+                    if registrar_usuario(usuario_data):
                         enviar_mensaje_texto(numero, "¡Felicidades! Su proceso de autenticación ha sido completado con éxito.")
-                        estado_usuario.pop(numero, None)
-                    except Exception as e:
-                        print(f"Error al registrar el usuario: {e}")
+                        estado_usuario.pop(numero, None)  # Finaliza el proceso
+                    else:
                         enviar_mensaje_texto(numero, "Hubo un error al registrar sus datos. Por favor, inténtelo de nuevo más tarde.")
                 else:
                     estado_usuario[numero]["intentos_codigo_validacion"] += 1
@@ -319,7 +336,7 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Código incorrecto, por favor intente nuevamente. Intento 1/2")
                     elif estado_usuario[numero]["intentos_codigo_validacion"] == 2:
                         enviar_mensaje_texto(numero, "Código incorrecto. Intentos fallidos, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)
+                        estado_usuario.pop(numero, None)  # Finaliza el proceso después de 2 intentos fallidos
                 return jsonify({'status': 'Validación de código procesada'}), 200
             
             return jsonify({'status': 'Respuesta procesada'}), 200

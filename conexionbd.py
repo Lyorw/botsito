@@ -45,6 +45,22 @@ def obtener_alternativas_por_id_pregunta(id_pregunta):
     finally:
         conn.close()
 
+def obtener_alternativa_por_id(id):
+    conn = obtener_conexion()
+    if conn is None:
+        return None
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID = %s", (id,))
+        row = cursor.fetchone()
+        return row[0] if row else None
+    except pymssql.Error as e:
+        print("Error al ejecutar la consulta:", e)
+        return None
+    finally:
+        conn.close()
+
 def verificar_usuario_registrado(numero):
     conn = obtener_conexion()
     if conn is None:
@@ -61,33 +77,27 @@ def verificar_usuario_registrado(numero):
     finally:
         conn.close()
 
-def obtener_alternativa_por_id(id):
-    conn = obtener_conexion()
-    if conn is None:
-        return None
-    
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT alternativas FROM alternativas_preguntas WHERE ID = %s", (id,))
-        row = cursor.fetchone()
-        return row[0] if row else None
-    except pymssql.Error as e:
-        print("Error al obtener la alternativa por ID:", e)
-        return None
-    finally:
-        conn.close()
-
-def registrar_usuario(celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil):
+def registrar_usuario(data):
     conn = obtener_conexion()
     if conn is None:
         return False
-
+    
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO usuario (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, fecha_registro, id_perfil))
+            INSERT INTO usuario (celular, correo, nombre, apellido, dni, codigo_usuario, canal_ventas, site_reportado, id_perfil, fecha_registro)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, GETDATE())
+        """, (
+            data["celular"],
+            data["correo"],
+            data["nombre"],
+            data["apellido"],
+            data["dni"],
+            data["codigo_usuario"],
+            data["canal_ventas"],
+            data["site_reportado"],
+            data["id_perfil"]
+        ))
         conn.commit()
         return True
     except pymssql.Error as e:
