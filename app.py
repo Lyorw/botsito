@@ -83,24 +83,6 @@ def recibir_mensajes():
                 manejar_usuario_registrado(numero, texto_usuario, estado_usuario)
                 return jsonify({'status': 'Usuario registrado, mensaje enviado'}), 200
 
-            # Lógica para manejar respuestas de botones
-            if messages.get("type") == "interactive":
-                interactive_obj = messages.get("interactive", {})
-                button_reply = interactive_obj.get("button_reply", {})
-                seleccion = button_reply.get("id", "")
-                
-                if seleccion == "button_yes":
-                    mensaje_si = obtener_mensaje_por_id(2)
-                    enviar_mensaje_texto(numero, mensaje_si)
-                    estado_usuario[numero]["esperando_correo"] = True
-                    estado_usuario[numero]["autenticacion_confirmada"] = True
-                    estado_usuario[numero]["recordatorio_enviado"] = False
-                    return jsonify({'status': 'Respuesta a botón procesada'}), 200
-                elif seleccion == "button_no":
-                    enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
-                    estado_usuario.pop(numero, None)
-                    return jsonify({'status': 'Respuesta a botón procesada'}), 200
-
             # Si el usuario no está registrado y no tiene estado
             if numero not in estado_usuario:
                 estado_usuario[numero] = {
@@ -122,7 +104,7 @@ def recibir_mensajes():
                     "esperando_codigo_validacion": False,
                     "autenticacion_confirmada": False,
                     "recordatorio_enviado": False,
-                    "mensaje_inicial_enviado": False,
+                    "mensaje_inicial_enviado": False,  # Añadir esta línea para rastrear el envío del mensaje inicial
                     "tipo_codigo": "",
                     "correo": "",
                     "codigo_validacion": "",
@@ -133,6 +115,7 @@ def recibir_mensajes():
                     "canal_ventas": "",
                     "site_reportado": ""
                 }
+                # Enviar el mensaje inicial y establecer el flag
                 enviar_mensaje_inicial(numero)
                 estado_usuario[numero]["mensaje_inicial_enviado"] = True
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
@@ -144,7 +127,28 @@ def recibir_mensajes():
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Lógica para manejar los demás estados
+            if messages.get("type") == "interactive":
+                interactive_obj = messages.get("interactive", {})
+                button_reply = interactive_obj.get("button_reply", {})
+                seleccion = button_reply.get("id", "")
+                
+                if seleccion == "button_yes":
+                    mensaje_si = obtener_mensaje_por_id(2)
+                    enviar_mensaje_texto(numero, mensaje_si)
+                    estado_usuario[numero]["esperando_correo"] = True
+                    estado_usuario[numero]["autenticacion_confirmada"] = True
+                    estado_usuario[numero]["recordatorio_enviado"] = False
+                elif seleccion == "button_no":
+                    enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
+                    estado_usuario.pop(numero, None)
+                return jsonify({'status': 'Respuesta a botón procesada'}), 200
+
+            if not estado_usuario[numero].get("autenticacion_confirmada", False):
+                if not estado_usuario[numero].get("recordatorio_enviado", False):
+                    enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
+                    estado_usuario[numero]["recordatorio_enviado"] = True
+                return jsonify({'status': 'Esperando selección de botón'}), 200
+
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
