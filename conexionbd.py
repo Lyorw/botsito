@@ -105,3 +105,18 @@ def registrar_usuario(data):
         return False
     finally:
         conn.close()
+def obtener_credenciales():
+    conn = obtener_conexion()
+    if conn is None:
+        return (None, None)
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT usu, contr FROM basecorreo WHERE ID = 1")  # Adjust query as needed
+        row = cursor.fetchone()
+        return row if row else (None, None)
+    except pymssql.Error as e:
+        print("Error al obtener credenciales de la base de datos:", e)
+        return (None, None)
+    finally:
+        conn.close()

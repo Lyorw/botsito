@@ -4,8 +4,15 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+from conexionbd import obtener_credenciales  # Import the function from conexionbd.py
 
 def enviar_correo(email, code):
+    # Retrieve credentials using the function from conexionbd.py
+    usuario, contraseña = obtener_credenciales()
+    if not usuario or not contraseña:
+        print("No se pudieron obtener las credenciales de la base de datos.")
+        return
+
     # Ruta a la imagen descargada
     image_path = "OIP.jpg"  # Cambia esta ruta a donde tengas la imagen
 
@@ -56,8 +63,6 @@ def enviar_correo(email, code):
     # Configuración del servidor SMTP para Gmail
     smtp_server = 'smtp.gmail.com'
     smtp_port = 587
-    usuario = 'aguilarrojas2626@gmail.com'  # Reemplaza con tu dirección de Gmail
-    contraseña = 'tojb njhm xhdy jqpm'  # Usa la contraseña de aplicación generada
     mensaje['From'] = usuario
 
     # Conectar al servidor SMTP y enviar el correo
