@@ -232,26 +232,27 @@ def recibir_mensajes():
             if estado_usuario[numero].get("esperando_pregunta_7", False):
                 tipo_codigo = estado_usuario[numero]["tipo_codigo"]
                 valid_ids = []
-
+            
                 if tipo_codigo == "E":
                     valid_ids = [4, 6, 7]
                 elif tipo_codigo == "C":
                     valid_ids = [3]
                 elif tipo_codigo == "D":
                     valid_ids = [5]
-
+            
                 try:
                     alternativa_id = int(texto_usuario)
                     id_map = {
-                        1: 3,
-                        2: 4,
-                        3: 5,
-                        4: 6,
-                        5: 7
+                        1: 3,  # Corresponde a CAC
+                        2: 4,  # Corresponde a Call Center
+                        3: 5,  # Corresponde a Distribuidores
+                        4: 6,  # Corresponde a Puntos de Venta
+                        5: 7   # Corresponde a Cadenas
                     }
                     if id_map.get(alternativa_id) in valid_ids:
-                        alternativa_canal = obtener_alternativa_por_id(alternativa_id)
-                        estado_usuario[numero]["canal_ventas"] = alternativa_canal
+                        # Aquí asignamos correctamente la respuesta válida al canal_ventas
+                        estado_usuario[numero]["canal_ventas"] = obtener_alternativa_por_id(id_map[alternativa_id])
+            
                         estado_usuario[numero]["esperando_pregunta_7"] = False
                         estado_usuario[numero]["esperando_pregunta_8"] = True
                         mensaje_pregunta_8 = obtener_mensaje_por_id(8)
@@ -276,7 +277,7 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a pregunta 7 procesada'}), 200
-
+            
             if estado_usuario[numero].get("esperando_pregunta_8", False):
                 try:
                     alternativa_id = int(texto_usuario)

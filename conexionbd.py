@@ -56,7 +56,7 @@ def obtener_alternativa_por_id(id):
         row = cursor.fetchone()
         return row[0] if row else None
     except pymssql.Error as e:
-        print("Error al ejecutar la consulta:", e)
+        print("Error al obtener alternativa por ID:", e)
         return None
     finally:
         conn.close()
