@@ -243,16 +243,14 @@ def recibir_mensajes():
                 try:
                     alternativa_id = int(texto_usuario)
                     id_map = {
-                        1: 3,  # Corresponde a CAC
-                        2: 4,  # Corresponde a Call Center
-                        3: 5,  # Corresponde a Distribuidores
-                        4: 6,  # Corresponde a Puntos de Venta
-                        5: 7   # Corresponde a Cadenas
+                        1: 3,
+                        2: 4,
+                        3: 5,
+                        4: 6,
+                        5: 7
                     }
                     if id_map.get(alternativa_id) in valid_ids:
-                        # Aquí asignamos correctamente la respuesta válida al canal_ventas
-                        estado_usuario[numero]["canal_ventas"] = obtener_alternativa_por_id(id_map[alternativa_id])
-            
+                        estado_usuario[numero]["canal_ventas"] = obtener_alternativa_por_id(id_map.get(alternativa_id))  # Guardar la respuesta correcta
                         estado_usuario[numero]["esperando_pregunta_7"] = False
                         estado_usuario[numero]["esperando_pregunta_8"] = True
                         mensaje_pregunta_8 = obtener_mensaje_por_id(8)
@@ -282,18 +280,9 @@ def recibir_mensajes():
                 try:
                     alternativa_id = int(texto_usuario)
                     if 1 <= alternativa_id <= 4:
-                        alternativa_site = obtener_alternativa_por_id(alternativa_id)
-                        estado_usuario[numero]["site_reportado"] = alternativa_site
-
-                        # Generar y enviar el código de validación alfanumérico
-                        codigo_validacion = generar_codigo_validacion()
-                        estado_usuario[numero]["codigo_validacion"] = codigo_validacion
-                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)  # Envía el correo con el código
-
-                        # Preguntar por el código de validación
-                        estado_usuario[numero]["esperando_codigo_validacion"] = True
-                        estado_usuario[numero]["intentos_codigo_validacion"] = 0  # Inicializar el contador de intentos
+                        estado_usuario[numero]["site_reportado"] = obtener_alternativa_por_id(alternativa_id)  # Guardar la respuesta correcta
                         enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
+                        estado_usuario[numero]["esperando_codigo_validacion"] = True
                         estado_usuario[numero]["esperando_pregunta_8"] = False
                     else:
                         estado_usuario[numero]["intentos_pregunta_8"] += 1
@@ -310,7 +299,7 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a pregunta 8 procesada'}), 200
-
+            
             # Validación del código de correo enviado
             if estado_usuario[numero].get("esperando_codigo_validacion", False):
                 if texto_usuario.upper() == estado_usuario[numero]["codigo_validacion"]:
