@@ -1,6 +1,6 @@
 # gestion_usuarios.py
 
-from app import enviar_mensaje_texto
+from enviar_mensaje import enviar_mensaje_texto
 
 # Función para manejar la conversación con usuarios registrados
 def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
