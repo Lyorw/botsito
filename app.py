@@ -104,7 +104,7 @@ def recibir_mensajes():
                     "esperando_codigo_validacion": False,
                     "autenticacion_confirmada": False,
                     "recordatorio_enviado": False,
-                    "mensaje_inicial_enviado": False,
+                    "mensaje_inicial_enviado": False,  # Añadir esta línea para rastrear el envío del mensaje inicial
                     "tipo_codigo": "",
                     "correo": "",
                     "codigo_validacion": "",
@@ -127,12 +127,13 @@ def recibir_mensajes():
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Manejo de botones interactivos
+            # Aquí puedes continuar con el resto de la lógica para manejar otros estados...
+            
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
                 seleccion = button_reply.get("id", "")
-
+                
                 if seleccion == "button_yes":
                     mensaje_si = obtener_mensaje_por_id(2)
                     enviar_mensaje_texto(numero, mensaje_si)
@@ -144,20 +145,13 @@ def recibir_mensajes():
                     estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Validación de respuestas de texto
-            if estado_usuario[numero]["mensaje_inicial_enviado"]:
-                if texto_usuario.lower() in ["sí", "si"]:
-                    enviar_mensaje_texto(numero, "¡Gracias por confirmar! Continuemos.")
-                    estado_usuario[numero]["esperando_correo"] = True
-                elif texto_usuario.lower() == "no":
-                    enviar_mensaje_texto(numero, "Okey, nos vemos pronto.")
-                    estado_usuario.pop(numero, None)
-                else:
-                    enviar_mensaje_texto(numero, "Por favor, responde con 'Sí' o 'No'.")
-                return jsonify({'status': 'Respuesta de texto procesada'}), 200
+            if not estado_usuario[numero].get("autenticacion_confirmada", False):
+                if not estado_usuario[numero].get("recordatorio_enviado", False):
+                    enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
+                    estado_usuario[numero]["recordatorio_enviado"] = True
+                return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Aquí puedes continuar con el resto de la lógica para manejar otros estados...
-
+            # Manejo de otros estados
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
