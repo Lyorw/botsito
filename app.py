@@ -102,7 +102,7 @@ def recibir_mensajes():
                     return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
             # Si el usuario no está registrado y no tiene estado
-            if numero not in estado_usuario:
+            if numero not in estado_usuario or not verificar_usuario_registrado(numero):
                 estado_usuario[numero] = {
                     "intentos_correo": 0,
                     "intentos_nombre": 0,
