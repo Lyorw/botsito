@@ -6,16 +6,12 @@ import random
 import string
 from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado, registrar_usuario, obtener_alternativa_por_id
 from correo import enviar_correo  # Importa la función de envío de correo
-from gerencia import manejar_usuario_registrado
-from enviar_mensaje import enviar_mensaje_texto, enviar_mensaje
-
+from gerencia import manejar_usuario_registrado  # Importar la función desde gerencia.py
+from enviar_mensaje import enviar_mensaje_texto, enviar_mensaje  # Importar desde enviar_mensaje.py
 
 app = Flask(__name__)
 
 TOKEN_ANDERCODE = "ANDERCODE"
-# PAGE_ID = "421866537676248"
-# ACCESS_TOKEN = "EAAYAnB4BMXoBOz3EniX02JC9u9QhS3ZBZCgHsdmF4UYPAsKIetZApKhlCGZAbnHfmAZAZCeD6AZCIcROdea8kSSpb9wZC98GZBdheZAeW7hR0BCann831LMsF8iM9VSbZA7yLTlMzckIRxI32sfVr9ZC41t2NTbMkZBSBTxIEGY74n2pR4LdLfAhVyXABVqElpFalqFjRUCx64luZCZCoelry1LB6xqBZBdlZC2oZD"
-
 mensajes_procesados = set()
 estado_usuario = {}
 
@@ -84,10 +80,8 @@ def recibir_mensajes():
 
             # Verificar si el usuario ya está registrado
             if verificar_usuario_registrado(numero):
-                # enviar_mensaje_texto(numero, "Usuario ya está registrado")
-                manejar_usuario_registrado(numero, texto_usuario)
-                
-                return jsonify({'status': 'Usuario registrado'}), 200
+                manejar_usuario_registrado(numero, texto_usuario, estado_usuario)  # Pasar estado_usuario
+                return jsonify({'status': 'Usuario registrado, mensaje enviado'}), 200
 
             if numero not in estado_usuario:
                 estado_usuario[numero] = {
@@ -347,18 +341,6 @@ def recibir_mensajes():
         print("Error en el procesamiento del mensaje:", e)
         return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
 
-# def enviar_mensaje_texto(numero, mensaje_texto):
-#     responder_mensaje = {
-#         "messaging_product": "whatsapp",
-#         "recipient_type": "individual",
-#         "to": numero,
-#         "type": "text",
-#         "text": {
-#             "body": mensaje_texto
-#         }
-#     }
-#     enviar_mensaje(responder_mensaje)
-
 def validar_correo(correo):
     patron = r'^[A-Za-z]{5,}@(globalhitss\.com|claro\.com\.pe)$'
     return re.match(patron, correo) is not None
@@ -400,18 +382,6 @@ def enviar_mensaje_inicial(numero):
         }
     }
     enviar_mensaje(responder_mensaje)
-
-# def enviar_mensaje(mensaje):
-#     conn = http.client.HTTPSConnection("graph.facebook.com")
-#     payload = json.dumps(mensaje)
-#     headers = {
-#         'Authorization': f'Bearer {ACCESS_TOKEN}',
-#         'Content-Type': 'application/json'
-#     }
-#     conn.request("POST", f"/v15.0/{PAGE_ID}/messages", payload, headers)
-#     res = conn.getresponse()
-#     data = res.read()
-#     print("Respuesta de Facebook API:", data.decode("utf-8"))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
