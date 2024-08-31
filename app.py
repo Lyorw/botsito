@@ -3,7 +3,7 @@ import http.client
 import json
 import re
 import random
-import string  # Para generar el código de validación alfanumérico
+import string
 from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado, registrar_usuario, obtener_alternativa_por_id
 from correo import enviar_correo  # Importa la función de envío de correo
 
@@ -56,7 +56,6 @@ def validar_codigo(codigo):
         return False
 
 def generar_codigo_validacion():
-    # Genera un código de 4 caracteres que incluye letras y números
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
 
 @app.route('/webhook', methods=['POST'])
@@ -281,6 +280,12 @@ def recibir_mensajes():
                     alternativa_id = int(texto_usuario)
                     if 1 <= alternativa_id <= 4:
                         estado_usuario[numero]["site_reportado"] = obtener_alternativa_por_id(alternativa_id)  # Guardar la respuesta correcta
+                        
+                        # Generar y enviar código de validación
+                        codigo_validacion = generar_codigo_validacion()
+                        estado_usuario[numero]["codigo_validacion"] = codigo_validacion
+                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)
+                        
                         enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
                         estado_usuario[numero]["esperando_codigo_validacion"] = True
                         estado_usuario[numero]["esperando_pregunta_8"] = False
