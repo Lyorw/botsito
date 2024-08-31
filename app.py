@@ -83,8 +83,8 @@ def recibir_mensajes():
                 manejar_usuario_registrado(numero, texto_usuario, estado_usuario)
                 return jsonify({'status': 'Usuario registrado, mensaje enviado'}), 200
 
-            # Si el usuario no está registrado y no tiene estado o fue eliminado de la BD
-            if numero not in estado_usuario or not verificar_usuario_registrado(numero):
+            # Si el usuario no está registrado y no tiene estado
+            if numero not in estado_usuario:
                 estado_usuario[numero] = {
                     "intentos_correo": 0,
                     "intentos_nombre": 0,
@@ -120,8 +120,8 @@ def recibir_mensajes():
                 estado_usuario[numero]["mensaje_inicial_enviado"] = True
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
-            # Lógica de recordatorio si el mensaje inicial ya fue enviado
-            if estado_usuario[numero]["mensaje_inicial_enviado"] and not estado_usuario[numero].get("autenticacion_confirmada", False):
+            # Lógica de recordatorio
+            if estado_usuario[numero].get("mensaje_inicial_enviado") and not estado_usuario[numero].get("autenticacion_confirmada", False):
                 if not estado_usuario[numero].get("recordatorio_enviado", False):
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
@@ -140,10 +140,9 @@ def recibir_mensajes():
                     estado_usuario[numero]["recordatorio_enviado"] = False
                 elif seleccion == "button_no":
                     enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
-                    estado_usuario.pop(numero, None)
+                    estado_usuario.pop(numero, None)  # Eliminar el estado del usuario después de seleccionar 'No'
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Lógica de autenticación
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
