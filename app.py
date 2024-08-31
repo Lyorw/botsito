@@ -115,7 +115,6 @@ def recibir_mensajes():
                     "canal_ventas": "",
                     "site_reportado": ""
                 }
-                # Enviar el mensaje inicial y establecer el flag
                 enviar_mensaje_inicial(numero)
                 estado_usuario[numero]["mensaje_inicial_enviado"] = True
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
@@ -139,11 +138,13 @@ def recibir_mensajes():
                     estado_usuario[numero]["autenticacion_confirmada"] = True
                     estado_usuario[numero]["recordatorio_enviado"] = False
                 elif seleccion == "button_no":
-                    enviar_mensaje_texto(numero, "Okey, nos vemos pronto.")
+                    enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
                     estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Manejo de correo electrónico
+            # Aquí puedes continuar con el resto de la lógica para manejar otros estados...
+            # Manejo de nombres, apellidos, números, códigos, preguntas específicas, etc.
+
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
@@ -161,7 +162,6 @@ def recibir_mensajes():
                     estado_usuario[numero]["esperando_correo"] = False
                 return jsonify({'status': 'Intento de correo procesado'}), 200
 
-            # Manejo de nombre del usuario
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["nombre"] = texto_usuario
@@ -178,7 +178,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
 
-            # Manejo de apellido del usuario
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["apellido"] = texto_usuario
@@ -195,7 +194,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de apellido procesado'}), 200
 
-            # Manejo del número de documento de identidad
             if estado_usuario[numero].get("esperando_numero", False):
                 if validar_numero(texto_usuario):
                     estado_usuario[numero]["dni"] = texto_usuario
@@ -212,7 +210,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
-            # Manejo del código del usuario
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):
                     estado_usuario[numero]["codigo_usuario"] = texto_usuario
@@ -237,7 +234,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de código procesado'}), 200
 
-            # Manejo de la pregunta 7
             if estado_usuario[numero].get("esperando_pregunta_7", False):
                 tipo_codigo = estado_usuario[numero]["tipo_codigo"]
                 valid_ids = []
@@ -285,7 +281,6 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a pregunta 7 procesada'}), 200
             
-            # Manejo de la pregunta 8
             if estado_usuario[numero].get("esperando_pregunta_8", False):
                 try:
                     alternativa_id = int(texto_usuario)
