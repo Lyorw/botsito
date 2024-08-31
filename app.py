@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
+import http.client
+import json
+import re
 import random
 import string
-import re
-from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado, registrar_usuario
-from correo import enviar_correo
+from conexionbd import obtener_mensaje_por_id, obtener_alternativas_por_id_pregunta, verificar_usuario_registrado, registrar_usuario, obtener_alternativa_por_id
+from correo import enviar_correo  # Importa la función de envío de correo
 from gerencia import manejar_usuario_registrado  # Importar la función desde gerencia.py
 from enviar_mensaje import enviar_mensaje_texto, enviar_mensaje  # Importar desde enviar_mensaje.py
 
@@ -36,13 +38,13 @@ def validar_numero(numero):
 def validar_codigo(codigo):
     if len(codigo) < 2:
         return False
-
+    
     letra = codigo[0].upper()
     numeros = codigo[1:]
-
+    
     if not letra.isalpha() or not numeros.isdigit():
         return False
-
+    
     if letra == "E":
         return 5 <= len(codigo) <= 6
     elif letra == "C":
@@ -125,7 +127,6 @@ def recibir_mensajes():
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Manejo de respuesta de botones interactivos
             if messages.get("type") == "interactive":
                 interactive_obj = messages.get("interactive", {})
                 button_reply = interactive_obj.get("button_reply", {})
@@ -138,11 +139,11 @@ def recibir_mensajes():
                     estado_usuario[numero]["autenticacion_confirmada"] = True
                     estado_usuario[numero]["recordatorio_enviado"] = False
                 elif seleccion == "button_no":
-                    enviar_mensaje_texto(numero, "Okey, nos vemos pronto")
+                    enviar_mensaje_texto(numero, "Okey, nos vemos pronto.")
                     estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
-            # Manejo de otros estados del usuario (correo, nombre, apellido, etc.)
+            # Manejo de correo electrónico
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
@@ -160,6 +161,7 @@ def recibir_mensajes():
                     estado_usuario[numero]["esperando_correo"] = False
                 return jsonify({'status': 'Intento de correo procesado'}), 200
 
+            # Manejo de nombre del usuario
             if estado_usuario[numero].get("esperando_nombre", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["nombre"] = texto_usuario
@@ -176,6 +178,7 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de nombre procesado'}), 200
 
+            # Manejo de apellido del usuario
             if estado_usuario[numero].get("esperando_apellido", False):
                 if validar_nombre(texto_usuario):
                     estado_usuario[numero]["apellido"] = texto_usuario
@@ -192,6 +195,7 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de apellido procesado'}), 200
 
+            # Manejo del número de documento de identidad
             if estado_usuario[numero].get("esperando_numero", False):
                 if validar_numero(texto_usuario):
                     estado_usuario[numero]["dni"] = texto_usuario
@@ -208,6 +212,7 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de número procesado'}), 200
 
+            # Manejo del código del usuario
             if estado_usuario[numero].get("esperando_codigo", False):
                 if validar_codigo(texto_usuario):
                     estado_usuario[numero]["codigo_usuario"] = texto_usuario
@@ -232,6 +237,7 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Intento de código procesado'}), 200
 
+            # Manejo de la pregunta 7
             if estado_usuario[numero].get("esperando_pregunta_7", False):
                 tipo_codigo = estado_usuario[numero]["tipo_codigo"]
                 valid_ids = []
@@ -279,18 +285,20 @@ def recibir_mensajes():
                         estado_usuario.pop(numero, None)
                 return jsonify({'status': 'Respuesta a pregunta 7 procesada'}), 200
             
+            # Manejo de la pregunta 8
             if estado_usuario[numero].get("esperando_pregunta_8", False):
                 try:
                     alternativa_id = int(texto_usuario)
-                    alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)
+                    alternativas_pregunta_8 = obtener_alternativas_por_id_pregunta(8)  # Aseguramos obtener alternativas
                     if 1 <= alternativa_id <= len(alternativas_pregunta_8):
-                        estado_usuario[numero]["site_reportado"] = alternativas_pregunta_8[alternativa_id - 1]
+                        estado_usuario[numero]["site_reportado"] = alternativas_pregunta_8[alternativa_id - 1]  # Guardar la respuesta correcta
                         estado_usuario[numero]["esperando_pregunta_8"] = False
                         estado_usuario[numero]["esperando_codigo_validacion"] = True
                         
+                        # Generar y enviar el código de validación
                         codigo_validacion = generar_codigo_validacion()
                         estado_usuario[numero]["codigo_validacion"] = codigo_validacion
-                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)
+                        enviar_correo(estado_usuario[numero]["correo"], codigo_validacion)  # Enviar correo con el código
                         enviar_mensaje_texto(numero, "Se envió a su correo un código de validación, ingrese el código para finalizar.")
                         
                     else:
@@ -312,6 +320,7 @@ def recibir_mensajes():
             # Validación del código de correo enviado
             if estado_usuario[numero].get("esperando_codigo_validacion", False):
                 if texto_usuario.upper() == estado_usuario[numero]["codigo_validacion"]:
+                    # Registrar al usuario en la base de datos
                     usuario_data = {
                         "celular": numero,
                         "correo": estado_usuario[numero]["correo"],
@@ -325,7 +334,7 @@ def recibir_mensajes():
                     }
                     if registrar_usuario(usuario_data):
                         enviar_mensaje_texto(numero, "¡Felicidades! Su proceso de autenticación ha sido completado con éxito.")
-                        estado_usuario.pop(numero, None)
+                        estado_usuario.pop(numero, None)  # Finaliza el proceso
                     else:
                         enviar_mensaje_texto(numero, "Hubo un error al registrar sus datos. Por favor, inténtelo de nuevo más tarde.")
                 else:
@@ -334,9 +343,9 @@ def recibir_mensajes():
                         enviar_mensaje_texto(numero, "Código incorrecto, por favor intente nuevamente. Intento 1/2")
                     elif estado_usuario[numero]["intentos_codigo_validacion"] == 2:
                         enviar_mensaje_texto(numero, "Código incorrecto. Intentos fallidos, nos vemos pronto.")
-                        estado_usuario.pop(numero, None)
+                        estado_usuario.pop(numero, None)  # Finaliza el proceso después de 2 intentos fallidos
                 return jsonify({'status': 'Validación de código procesada'}), 200
-
+            
             return jsonify({'status': 'Respuesta procesada'}), 200
         else:
             return jsonify({'error': 'No hay mensajes para procesar'}), 400
