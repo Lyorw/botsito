@@ -37,19 +37,9 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                     enviar_mensaje_texto(numero, "No se encontraron canales disponibles para la Gerencia seleccionada. Intente más tarde.")
                     estado_usuario.pop(numero, None)
             else:
-                estado["intentos"] += 1
-                if estado["intentos"] < 2:
-                    enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {len(estado['opciones_validas'])} para seleccionar su opción. ({estado['intentos']}/2 intentos)")
-                else:
-                    enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                    estado_usuario.pop(numero, None)
+                manejar_intentos(estado, numero, len(estado["opciones_validas"]))
         except ValueError:
-            estado["intentos"] += 1
-            if estado["intentos"] < 2:
-                enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {len(estado['opciones_validas'])} para seleccionar su opción. ({estado['intentos']}/2 intentos)")
-            else:
-                enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                estado_usuario.pop(numero, None)
+            manejar_intentos(estado, numero, len(estado["opciones_validas"]))
     elif estado.get("fase") == "seleccion_canal":
         try:
             seleccion = int(texto_usuario)
@@ -58,18 +48,16 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                 # Aquí puedes continuar con la lógica del siguiente paso del flujo
                 estado_usuario.pop(numero, None)
             else:
-                estado["intentos"] += 1
-                if estado["intentos"] < 2:
-                    enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {len(estado['opciones_validas'])} para seleccionar su canal. ({estado['intentos']}/2 intentos)")
-                else:
-                    enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                    estado_usuario.pop(numero, None)
+                manejar_intentos(estado, numero, len(estado["opciones_validas"]))
         except ValueError:
-            estado["intentos"] += 1
-            if estado["intentos"] < 2:
-                enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {len(estado['opciones_validas'])} para seleccionar su canal. ({estado['intentos']}/2 intentos)")
-            else:
-                enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-                estado_usuario.pop(numero, None)
+            manejar_intentos(estado, numero, len(estado["opciones_validas"]))
 
     estado_usuario[numero] = estado
+
+def manejar_intentos(estado, numero, max_opciones):
+    estado["intentos"] += 1
+    if estado["intentos"] < 2:
+        enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {max_opciones} para seleccionar su opción. ({estado['intentos']}/2 intentos)")
+    else:
+        enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
+        estado_usuario.pop(numero, None)
