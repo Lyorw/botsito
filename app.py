@@ -102,7 +102,7 @@ def recibir_mensajes():
                     return jsonify({'status': 'Respuesta a botón procesada'}), 200
 
             # Si el usuario no está registrado y no tiene estado
-            if numero not in estado_usuario or not verificar_usuario_registrado(numero):
+            if numero not in estado_usuario:
                 estado_usuario[numero] = {
                     "intentos_correo": 0,
                     "intentos_nombre": 0,
@@ -140,6 +140,7 @@ def recibir_mensajes():
             # Lógica de recordatorio
             if estado_usuario[numero]["mensaje_inicial_enviado"] and not estado_usuario[numero].get("autenticacion_confirmada", False):
                 if not estado_usuario[numero].get("recordatorio_enviado", False):
+                    enviar_mensaje_inicial(numero)
                     enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
                     estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
