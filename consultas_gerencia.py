@@ -24,3 +24,15 @@ def obtener_nombres_gerencia():
         return nombres
     else:
         return []
+
+def obtener_canales_por_gerencia_id(gerencia_id):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        query = "SELECT nombre FROM CanalDeVenta WHERE gerencia_id = %s"
+        cursor.execute(query, (gerencia_id,))
+        canales = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return canales
+    else:
+        return []
