@@ -36,3 +36,4 @@ def obtener_canales_por_gerencia_id(gerencia_id):
         return canales
     else:
         return []
+

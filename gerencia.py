@@ -1,5 +1,5 @@
 from enviar_mensaje import enviar_mensaje_texto
-from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia
+from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia_id
 
 def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     estado = estado_usuario.get(numero, {})
@@ -27,7 +27,7 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
             if seleccion in estado["opciones_validas"] and not estado.get("seleccion_gerencia"):
                 estado["seleccion_gerencia"] = True
                 estado["gerencia_seleccionada"] = seleccion
-                canales = obtener_canales_por_gerencia(seleccion)
+                canales = obtener_canales_por_gerencia_id(seleccion)
                 if canales:
                     mensaje = "Has seleccionado una Gerencia. Ahora, selecciona el canal de venta:\n\n"
                     for i, canal in enumerate(canales):
