@@ -1,6 +1,6 @@
 import time
 from enviar_mensaje import enviar_mensaje_texto
-from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia, obtener_tipos_de_falla
+from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia, obtener_tipos_de_falla, obtener_aplicaciones
 
 def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     estado = estado_usuario.get(numero, {})
@@ -37,7 +37,7 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                         enviar_mensaje_texto(numero, mensaje)
                         estado["opciones_validas"] = list(range(1, len(canales) + 1))
                         estado["fase"] = "seleccion_canal"
-                        estado["intentos"] = 0  # Resetear intentos para nueva fase
+                        estado["intentos"] = 0
                     else:
                         enviar_mensaje_texto(numero, "No se encontraron canales para esta Gerencia. Intente con otra.")
                         manejar_usuario_registrado(numero, "", estado_usuario)
@@ -53,13 +53,29 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                         enviar_mensaje_texto(numero, mensaje)
                         estado["opciones_validas"] = list(range(1, len(tipos_falla) + 1))
                         estado["fase"] = "seleccion_tipo_falla"
-                        estado["intentos"] = 0  # Resetear intentos para nueva fase
+                        estado["intentos"] = 0
                     else:
                         enviar_mensaje_texto(numero, "No se encontraron tipos de falla para este canal. Intente con otro.")
                         manejar_usuario_registrado(numero, "", estado_usuario)
 
                 elif estado.get("fase") == "seleccion_tipo_falla":
-                    enviar_mensaje_texto(numero, f"Has seleccionado el tipo de falla {seleccion}. Continuemos.")
+                    enviar_mensaje_texto(numero, f"Has seleccionado el tipo de falla {seleccion}. Ahora, selecciona la aplicación:")
+                    aplicaciones = obtener_aplicaciones(seleccion)
+                    if aplicaciones:
+                        mensaje = ""
+                        for i, aplicacion in enumerate(aplicaciones):
+                            numero_icono = "".join(f"{digit}\u20E3" for digit in str(i + 1))
+                            mensaje += f"{numero_icono} {aplicacion}\n"
+                        enviar_mensaje_texto(numero, mensaje)
+                        estado["opciones_validas"] = list(range(1, len(aplicaciones) + 1))
+                        estado["fase"] = "seleccion_aplicacion"
+                        estado["intentos"] = 0
+                    else:
+                        enviar_mensaje_texto(numero, "No se encontraron aplicaciones para este tipo de falla. Intente con otro.")
+                        manejar_usuario_registrado(numero, "", estado_usuario)
+
+                elif estado.get("fase") == "seleccion_aplicacion":
+                    enviar_mensaje_texto(numero, f"Has seleccionado la aplicación {seleccion}. Continuemos.")
                     estado_usuario.pop(numero, None)  # Limpiar estado al final del flujo
 
             else:

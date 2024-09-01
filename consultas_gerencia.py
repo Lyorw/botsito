@@ -48,3 +48,15 @@ def obtener_tipos_de_falla(canal_de_venta_id):
         return tipos_falla
     else:
         return []
+
+def obtener_aplicaciones(tipo_de_falla_id):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        query = "SELECT nombre FROM Aplicacion WHERE tipo_de_falla_id = %s"
+        cursor.execute(query, (tipo_de_falla_id,))
+        aplicaciones = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return aplicaciones
+    else:
+        return []
