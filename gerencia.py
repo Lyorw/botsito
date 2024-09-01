@@ -34,8 +34,45 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
         if estado.get("fase") == "ingresar_descripcion":
             # Directamente almacenar la descripción
             descripcion = texto_usuario
-            enviar_mensaje_texto(numero, "Descripción recibida. Continuamos.")
-            estado_usuario.pop(numero, None)
+            enviar_mensaje_texto(numero, "Descripción recibida. Desea ingresar una imagen?\n\n1⃣ Sí\n2⃣ No")
+            estado["fase"] = "ingresar_imagen_opcion"
+            estado["opciones_validas"] = [1, 2]  # Opciones para elegir si desea ingresar una imagen
+            estado["intentos"] = 0
+
+        elif estado.get("fase") == "ingresar_imagen_opcion":
+            if texto_usuario == "1":
+                enviar_mensaje_texto(numero, "Por favor, ingresa la imagen en cualquier formato común (jpg, jpeg, png, etc.).")
+                estado["fase"] = "esperando_imagen"
+                estado["intentos"] = 0
+            elif texto_usuario == "2":
+                enviar_mensaje_texto(numero, "No se ingresará ninguna imagen. Continuamos.")
+                estado_usuario.pop(numero, None)
+            else:
+                estado["intentos"] += 1
+                if estado["intentos"] < 2:
+                    enviar_mensaje_texto(numero, "Por favor, responde con 1 para 'Sí' o 2 para 'No'.")
+                else:
+                    enviar_mensaje_texto(numero, "Intentos fallidos. Regresando al inicio.")
+                    time.sleep(2)
+                    estado.clear()
+                    manejar_usuario_registrado(numero, "", estado_usuario)
+
+        elif estado.get("fase") == "esperando_imagen":
+            # Aquí deberías tener la lógica para manejar la recepción de imágenes
+            # Supongamos que manejas la recepción y guardado de la imagen aquí
+            if is_image_file(texto_usuario):  # Esta es una función ficticia que necesitas implementar
+                enviar_mensaje_texto(numero, "Imagen recibida. Continuamos.")
+                estado_usuario.pop(numero, None)
+            else:
+                estado["intentos"] += 1
+                if estado["intentos"] < 2:
+                    enviar_mensaje_texto(numero, "El archivo recibido no es una imagen válida. Por favor, intenta nuevamente.")
+                else:
+                    enviar_mensaje_texto(numero, "Intentos fallidos. Regresando al inicio.")
+                    time.sleep(2)
+                    estado.clear()
+                    manejar_usuario_registrado(numero, "", estado_usuario)
+
         else:
             try:
                 seleccion = int(texto_usuario)
@@ -147,3 +184,8 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                     manejar_usuario_registrado(numero, "", estado_usuario)
 
     estado_usuario[numero] = estado
+
+def is_image_file(filename):
+    # Esta función comprueba si un archivo tiene una extensión de imagen válida
+    valid_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp']
+    return any(filename.lower().endswith(ext) for ext in valid_extensions)
