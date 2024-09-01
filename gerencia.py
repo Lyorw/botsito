@@ -17,6 +17,7 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
             estado["fase"] = "seleccion_gerencia"
         else:
             enviar_mensaje_texto(numero, "No se encontraron opciones disponibles. Intente más tarde.")
+            estado_usuario.pop(numero, None)  # Termina el flujo en caso de error grave
         estado["mensaje_inicial_enviado"] = True
     elif estado.get("fase") == "seleccion_gerencia":
         try:
@@ -37,9 +38,9 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                     enviar_mensaje_texto(numero, "No se encontraron canales disponibles para la Gerencia seleccionada. Intente más tarde.")
                     estado_usuario.pop(numero, None)
             else:
-                manejar_intentos(estado, numero, len(estado["opciones_validas"]))
+                manejar_intentos(estado, numero, len(estado["opciones_validas"]), estado_usuario)
         except ValueError:
-            manejar_intentos(estado, numero, len(estado["opciones_validas"]))
+            manejar_intentos(estado, numero, len(estado["opciones_validas"]), estado_usuario)
     elif estado.get("fase") == "seleccion_canal":
         try:
             seleccion = int(texto_usuario)
@@ -48,16 +49,17 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                 # Aquí puedes continuar con la lógica del siguiente paso del flujo
                 estado_usuario.pop(numero, None)
             else:
-                manejar_intentos(estado, numero, len(estado["opciones_validas"]))
+                manejar_intentos(estado, numero, len(estado["opciones_validas"]), estado_usuario)
         except ValueError:
-            manejar_intentos(estado, numero, len(estado["opciones_validas"]))
+            manejar_intentos(estado, numero, len(estado["opciones_validas"]), estado_usuario)
 
     estado_usuario[numero] = estado
 
-def manejar_intentos(estado, numero, max_opciones):
+def manejar_intentos(estado, numero, max_opciones, estado_usuario):
     estado["intentos"] += 1
     if estado["intentos"] < 2:
         enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {max_opciones} para seleccionar su opción. ({estado['intentos']}/2 intentos)")
     else:
-        enviar_mensaje_texto(numero, "Intentos fallidos, nos vemos pronto.")
-        estado_usuario.pop(numero, None)
+        enviar_mensaje_texto(numero, "Intentos fallidos. Regresando al inicio.")
+        estado_usuario.pop(numero, None)  # Elimina el estado actual para reiniciar
+        manejar_usuario_registrado(numero, "", estado_usuario)  # Llamar a la función para reiniciar desde el principio
