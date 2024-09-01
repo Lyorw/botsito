@@ -137,12 +137,15 @@ def recibir_mensajes():
                 estado_usuario[numero]["mensaje_inicial_enviado"] = True
                 return jsonify({'status': 'Mensaje inicial enviado'}), 200
 
-            # Lógica de recordatorio para usuarios no registrados
+            # Lógica de recordatorio
             if estado_usuario[numero]["mensaje_inicial_enviado"] and not estado_usuario[numero].get("autenticacion_confirmada", False):
-                enviar_mensaje_inicial(numero)  # Reenvía el mensaje inicial con botones
+                if not estado_usuario[numero].get("recordatorio_enviado", False):
+                    enviar_mensaje_inicial(numero)
+                    enviar_mensaje_texto(numero, "Por favor, escoja uno de los botones para continuar: 'Sí' o 'No'.")
+                    estado_usuario[numero]["recordatorio_enviado"] = True
                 return jsonify({'status': 'Esperando selección de botón'}), 200
 
-            # Manejar los demás estados
+            # Lógica para manejar los demás estados
             if estado_usuario[numero].get("esperando_correo", False):
                 if not validar_correo(texto_usuario):
                     estado_usuario[numero]["intentos_correo"] += 1
@@ -328,6 +331,8 @@ def recibir_mensajes():
                     if registrar_usuario(usuario_data):
                         manejar_usuario_registrado(numero, texto_usuario, estado_usuario)
                         estado_usuario.pop(numero, None)  # Finaliza el proceso
+                        return jsonify({'status': 'Usuario registrado y manejado como registrado'}), 200
+
                     else:
                         enviar_mensaje_texto(numero, "Hubo un error al registrar sus datos. Por favor, inténtelo de nuevo más tarde.")
                 else:
