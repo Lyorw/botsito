@@ -25,7 +25,7 @@ def obtener_nombres_gerencia():
     else:
         return []
 
-def obtener_canales_por_gerencia_id(gerencia_id):
+def obtener_canales_por_gerencia(gerencia_id):
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor()
