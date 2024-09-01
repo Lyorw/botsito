@@ -12,3 +12,5 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
         estado_usuario.pop(numero, None)
 
     estado_usuario[numero] = estado
+
+

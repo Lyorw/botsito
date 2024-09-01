@@ -329,7 +329,11 @@ def recibir_mensajes():
                         "id_perfil": 1  # Asignar un perfil fijo por ahora
                     }
                     if registrar_usuario(usuario_data):
-                        enviar_mensaje_texto(numero, "¡Felicidades! Su proceso de autenticación ha sido completado con éxito.")
+                        # enviar_mensaje_texto(numero, "¡Felicidades! Su proceso de autenticación ha sido completado con éxito.")
+                        manejar_usuario_registrado(numero, texto_usuario, estado_usuario)
+                        return jsonify({'status': 'Usuario registrado y manejado como registrado'}), 200
+
+
                         estado_usuario.pop(numero, None)  # Finaliza el proceso
                     else:
                         enviar_mensaje_texto(numero, "Hubo un error al registrar sus datos. Por favor, inténtelo de nuevo más tarde.")
