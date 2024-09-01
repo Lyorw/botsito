@@ -5,22 +5,12 @@ from consultas_gerencia import (
     obtener_canales_por_gerencia,
     obtener_tipos_falla_por_canal,
     obtener_aplicaciones_por_falla,
-    obtener_fallas_por_torre,
     obtener_torre_por_aplicacion,
+    obtener_fallas_por_torre,
     obtener_escenarios_por_falla
 )
-from PIL import Image
-import io
 
-def is_image_file(file_content):
-    try:
-        image = Image.open(io.BytesIO(file_content))
-        image.verify()
-        return True
-    except (IOError, SyntaxError):
-        return False
-
-def manejar_usuario_registrado(numero, texto_usuario, estado_usuario, file_content=None):
+def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     estado = estado_usuario.get(numero, {})
 
     if not estado.get("mensaje_inicial_enviado", False):
@@ -120,45 +110,16 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario, file_conte
                             mensaje += f"{numero_icono} {escenario}\n"
                         enviar_mensaje_texto(numero, mensaje)
                         estado["opciones_validas"] = list(range(1, len(escenarios) + 1))
-                        estado["fase"] = "seleccion_escenario_falla"
+                        estado["fase"] = "seleccion_escenario"
                         estado["intentos"] = 0
                     else:
-                        enviar_mensaje_texto(numero, "No se encontraron escenarios de falla para esta falla. Intente con otra.")
+                        enviar_mensaje_texto(numero, "No se encontraron escenarios para esta falla. Intente con otra.")
                         manejar_usuario_registrado(numero, "", estado_usuario)
 
-                elif estado.get("fase") == "seleccion_escenario_falla":
+                elif estado.get("fase") == "seleccion_escenario":
                     enviar_mensaje_texto(numero, "Has seleccionado el escenario de falla. Ingresar la descripción de su consulta:")
-                    estado["fase"] = "esperando_descripcion"
+                    estado["fase"] = "descripcion_consulta"
                     estado["intentos"] = 0
-
-                elif estado.get("fase") == "esperando_descripcion":
-                    enviar_mensaje_texto(numero, "Descripción recibida. ¿Desea ingresar una imagen? Responda con 'Sí' o 'No'.")
-                    estado["fase"] = "esperando_respuesta_imagen"
-                    estado["intentos"] = 0
-
-                elif estado.get("fase") == "esperando_respuesta_imagen":
-                    if texto_usuario.lower() == "si":
-                        enviar_mensaje_texto(numero, "Por favor, ingresa la imagen en cualquier formato común (jpg, jpeg, png, etc.).")
-                        estado["fase"] = "esperando_imagen"
-                    elif texto_usuario.lower() == "no":
-                        enviar_mensaje_texto(numero, "Continuamos con la conversación.")
-                        estado_usuario.pop(numero, None)
-                    else:
-                        enviar_mensaje_texto(numero, "Por favor, responde con 'Sí' o 'No'.")
-
-                elif estado.get("fase") == "esperando_imagen":
-                    if file_content and is_image_file(file_content):
-                        enviar_mensaje_texto(numero, "Imagen recibida correctamente. Continuamos con la conversación.")
-                        estado_usuario.pop(numero, None)
-                    else:
-                        estado["intentos"] += 1
-                        if estado["intentos"] < 2:
-                            enviar_mensaje_texto(numero, "El archivo recibido no es una imagen válida. Por favor, intenta nuevamente.")
-                        else:
-                            enviar_mensaje_texto(numero, "Intentos fallidos. Regresando al inicio.")
-                            time.sleep(2)
-                            estado.clear()
-                            manejar_usuario_registrado(numero, "", estado_usuario)
 
             else:
                 estado["intentos"] += 1
@@ -170,13 +131,17 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario, file_conte
                     estado.clear()
                     manejar_usuario_registrado(numero, "", estado_usuario)
         except ValueError:
-            estado["intentos"] += 1
-            if estado["intentos"] < 2:
-                enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {len(estado['opciones_validas'])} para seleccionar su opción. ({estado['intentos']}/2 intentos)")
+            if estado.get("fase") == "descripcion_consulta":
+                enviar_mensaje_texto(numero, "Descripción recibida. Desea ingresar una imagen?")
+                estado["fase"] = "esperando_respuesta_imagen"
             else:
-                enviar_mensaje_texto(numero, "Intentos fallidos. Regresando al inicio.")
-                time.sleep(2)
-                estado.clear()
-                manejar_usuario_registrado(numero, "", estado_usuario)
+                estado["intentos"] += 1
+                if estado["intentos"] < 2:
+                    enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {len(estado['opciones_validas'])} para seleccionar su opción. ({estado['intentos']}/2 intentos)")
+                else:
+                    enviar_mensaje_texto(numero, "Intentos fallidos. Regresando al inicio.")
+                    time.sleep(2)
+                    estado.clear()
+                    manejar_usuario_registrado(numero, "", estado_usuario)
 
     estado_usuario[numero] = estado
