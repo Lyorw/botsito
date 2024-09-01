@@ -37,3 +37,14 @@ def obtener_canales_por_gerencia(gerencia_id):
     else:
         return []
 
+def obtener_tipos_de_falla(canal_de_venta_id):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        query = "SELECT nombre FROM TipoDeFalla WHERE canal_de_venta_id = %s"
+        cursor.execute(query, (canal_de_venta_id,))
+        tipos_falla = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return tipos_falla
+    else:
+        return []

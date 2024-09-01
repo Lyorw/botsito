@@ -1,6 +1,6 @@
 import time
 from enviar_mensaje import enviar_mensaje_texto
-from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia
+from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia, obtener_tipos_de_falla
 
 def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     estado = estado_usuario.get(numero, {})
@@ -41,9 +41,27 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                     else:
                         enviar_mensaje_texto(numero, "No se encontraron canales para esta Gerencia. Intente con otra.")
                         manejar_usuario_registrado(numero, "", estado_usuario)
+
                 elif estado.get("fase") == "seleccion_canal":
-                    enviar_mensaje_texto(numero, f"Has seleccionado el canal {seleccion}. Continuemos.")
+                    enviar_mensaje_texto(numero, f"Has seleccionado el canal {seleccion}. Ahora, selecciona el tipo de falla:")
+                    tipos_falla = obtener_tipos_de_falla(seleccion)
+                    if tipos_falla:
+                        mensaje = ""
+                        for i, tipo in enumerate(tipos_falla):
+                            numero_icono = "".join(f"{digit}\u20E3" for digit in str(i + 1))
+                            mensaje += f"{numero_icono} {tipo}\n"
+                        enviar_mensaje_texto(numero, mensaje)
+                        estado["opciones_validas"] = list(range(1, len(tipos_falla) + 1))
+                        estado["fase"] = "seleccion_tipo_falla"
+                        estado["intentos"] = 0  # Resetear intentos para nueva fase
+                    else:
+                        enviar_mensaje_texto(numero, "No se encontraron tipos de falla para este canal. Intente con otro.")
+                        manejar_usuario_registrado(numero, "", estado_usuario)
+
+                elif estado.get("fase") == "seleccion_tipo_falla":
+                    enviar_mensaje_texto(numero, f"Has seleccionado el tipo de falla {seleccion}. Continuemos.")
                     estado_usuario.pop(numero, None)  # Limpiar estado al final del flujo
+
             else:
                 estado["intentos"] += 1
                 if estado["intentos"] < 2:
@@ -53,6 +71,7 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                     time.sleep(2)  # Retraso de 2 segundos
                     estado.clear()
                     manejar_usuario_registrado(numero, "", estado_usuario)
+
         except ValueError:
             estado["intentos"] += 1
             if estado["intentos"] < 2:
