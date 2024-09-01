@@ -1,5 +1,4 @@
-from enviar_mensaje import enviar_mensaje_texto
-from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia
+import time
 
 def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     estado = estado_usuario.get(numero, {})
@@ -14,6 +13,7 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                     numero_icono += f"{digit}\u20E3"
                 mensaje += f"{numero_icono} {nombre}\n"
             enviar_mensaje_texto(numero, mensaje)
+            time.sleep(2)  # Retraso de 2 segundos
             estado["opciones_validas"] = list(range(1, len(nombres_gerencia) + 1))
             estado["intentos"] = 0
         else:
@@ -24,32 +24,26 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
         try:
             seleccion = int(texto_usuario)
             if seleccion in estado["opciones_validas"]:
-                enviar_mensaje_texto(numero, f"Has seleccionado una Gerencia. Ahora, selecciona el canal de venta:")
-                canales = obtener_canales_por_gerencia(seleccion)
-                mensaje_canales = ""
-                for j, canal in enumerate(canales):
-                    numero_icono = ""
-                    for digit in str(j + 1):
-                        numero_icono += f"{digit}\u20E3"
-                    mensaje_canales += f"{numero_icono} {canal}\n"
-                enviar_mensaje_texto(numero, mensaje_canales)
-                estado["opciones_validas"] = list(range(1, len(canales) + 1))
-                estado["intentos"] = 0
+                enviar_mensaje_texto(numero, f"Has seleccionado la opción {seleccion}. Continuemos.")
+                time.sleep(2)  # Retraso de 2 segundos
+                estado_usuario.pop(numero, None)  # Lógica para continuar
             else:
                 estado["intentos"] += 1
                 if estado["intentos"] < 2:
                     enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {len(estado['opciones_validas'])} para seleccionar su opción. ({estado['intentos']}/2 intentos)")
                 else:
                     enviar_mensaje_texto(numero, "Intentos fallidos. Regresando al inicio.")
+                    time.sleep(2)  # Retraso de 2 segundos
                     estado.clear()
-                    manejar_usuario_registrado(numero, texto_usuario, estado_usuario)
+                    manejar_usuario_registrado(numero, "", estado_usuario)
         except ValueError:
             estado["intentos"] += 1
             if estado["intentos"] < 2:
                 enviar_mensaje_texto(numero, f"Por favor, responda con un número entre 1 y {len(estado['opciones_validas'])} para seleccionar su opción. ({estado['intentos']}/2 intentos)")
             else:
                 enviar_mensaje_texto(numero, "Intentos fallidos. Regresando al inicio.")
+                time.sleep(2)  # Retraso de 2 segundos
                 estado.clear()
-                manejar_usuario_registrado(numero, texto_usuario, estado_usuario)
+                manejar_usuario_registrado(numero, "", estado_usuario)
 
     estado_usuario[numero] = estado
