@@ -1,6 +1,14 @@
 import time
 from enviar_mensaje import enviar_mensaje_texto
-from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia, obtener_tipos_falla_por_canal, obtener_aplicaciones_por_falla, obtener_fallas_por_torre, obtener_torre_por_aplicacion
+from consultas_gerencia import (
+    obtener_nombres_gerencia, 
+    obtener_canales_por_gerencia, 
+    obtener_tipos_falla_por_canal, 
+    obtener_aplicaciones_por_falla, 
+    obtener_fallas_por_torre, 
+    obtener_torre_por_aplicacion,
+    obtener_escenarios_por_falla  # Nueva función importada
+)
 
 def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     estado = estado_usuario.get(numero, {})
@@ -78,7 +86,7 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                         time.sleep(2)
                         fallas = obtener_fallas_por_torre(seleccion)
                         if fallas:
-                            mensaje = "Selecciona la falla:\n"
+                            mensaje = "Selecciona la falla:\n\n"
                             for i, falla in enumerate(fallas):
                                 numero_icono = "".join(f"{digit}\u20E3" for digit in str(i + 1))
                                 mensaje += f"{numero_icono} {falla}\n"
@@ -94,8 +102,24 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                         manejar_usuario_registrado(numero, "", estado_usuario)
 
                 elif estado.get("fase") == "seleccion_falla":
-                    enviar_mensaje_texto(numero, f"Has seleccionado la falla {seleccion}. Proceso completado.")
+                    escenarios = obtener_escenarios_por_falla(seleccion)
+                    if escenarios:
+                        mensaje = "Has seleccionado una falla. Ahora, selecciona el escenario de falla:\n"
+                        for i, escenario in enumerate(escenarios):
+                            numero_icono = "".join(f"{digit}\u20E3" for digit in str(i + 1))
+                            mensaje += f"{numero_icono} {escenario}\n"
+                        enviar_mensaje_texto(numero, mensaje)
+                        estado["opciones_validas"] = list(range(1, len(escenarios) + 1))
+                        estado["fase"] = "seleccion_escenario_falla"
+                        estado["intentos"] = 0
+                    else:
+                        enviar_mensaje_texto(numero, "No se encontraron escenarios para esta falla. Intente con otro.")
+                        manejar_usuario_registrado(numero, "", estado_usuario)
+
+                elif estado.get("fase") == "seleccion_escenario_falla":
+                    enviar_mensaje_texto(numero, f"Has seleccionado el escenario de falla {seleccion}. Proceso completado.")
                     estado_usuario.pop(numero, None)
+                    
             else:
                 estado["intentos"] += 1
                 if estado["intentos"] < 2:

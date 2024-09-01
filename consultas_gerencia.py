@@ -84,3 +84,16 @@ def obtener_fallas_por_torre(torre_id):
         return fallas
     else:
         return []
+
+
+def obtener_escenarios_por_falla(falla_id):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        query = "SELECT nombre FROM EscenarioDeFalla WHERE falla_id = %s"
+        cursor.execute(query, (falla_id,))
+        escenarios = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return escenarios
+    else:
+        return []
