@@ -117,9 +117,16 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                         manejar_usuario_registrado(numero, "", estado_usuario)
 
                 elif estado.get("fase") == "seleccion_escenario_falla":
-                    enviar_mensaje_texto(numero, f"Has seleccionado el escenario de falla {seleccion}. Proceso completado.")
+                    enviar_mensaje_texto(numero, "Has seleccionado el escenario de falla. Ingresar la descripción de su consulta:")
+                    estado["fase"] = "ingresar_descripcion"
+                    estado["intentos"] = 0
+
+                elif estado.get("fase") == "ingresar_descripcion":
+                    # Aquí simplemente almacenamos la descripción y finalizamos
+                    descripcion = texto_usuario
+                    enviar_mensaje_texto(numero, "Descripción recibida. Continuamos.")
                     estado_usuario.pop(numero, None)
-                    
+
             else:
                 estado["intentos"] += 1
                 if estado["intentos"] < 2:
