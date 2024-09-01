@@ -1,4 +1,6 @@
 import time
+from enviar_mensaje import enviar_mensaje_texto
+from consultas_gerencia import obtener_nombres_gerencia, obtener_canales_por_gerencia
 
 def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     estado = estado_usuario.get(numero, {})
