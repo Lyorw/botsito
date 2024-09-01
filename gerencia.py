@@ -37,13 +37,13 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
                         enviar_mensaje_texto(numero, mensaje)
                         estado["opciones_validas"] = list(range(1, len(canales) + 1))
                         estado["fase"] = "seleccion_canal"
+                        estado["intentos"] = 0  # Resetear intentos para nueva fase
                     else:
                         enviar_mensaje_texto(numero, "No se encontraron canales para esta Gerencia. Intente con otra.")
                         manejar_usuario_registrado(numero, "", estado_usuario)
                 elif estado.get("fase") == "seleccion_canal":
                     enviar_mensaje_texto(numero, f"Has seleccionado el canal {seleccion}. Continuemos.")
-                    time.sleep(2)  # Retraso de 2 segundos
-                    estado_usuario.pop(numero, None)
+                    estado_usuario.pop(numero, None)  # Limpiar estado al final del flujo
             else:
                 estado["intentos"] += 1
                 if estado["intentos"] < 2:
