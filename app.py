@@ -331,8 +331,6 @@ def recibir_mensajes():
                     if registrar_usuario(usuario_data):
                         manejar_usuario_registrado(numero, texto_usuario, estado_usuario)
                         estado_usuario.pop(numero, None)  # Finaliza el proceso
-                        return jsonify({'status': 'Usuario registrado y manejado como registrado'}), 200
-
                     else:
                         enviar_mensaje_texto(numero, "Hubo un error al registrar sus datos. Por favor, inténtelo de nuevo más tarde.")
                 else:
