@@ -37,12 +37,24 @@ def obtener_canales_por_gerencia(gerencia_id):
     else:
         return []
 
-def obtener_aplicaciones_por_falla(canal_de_venta_id):
+def obtener_tipos_falla_por_canal(canal_id):
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor()
-        query = "SELECT nombre FROM Aplicacion WHERE canal_de_venta_id = %s"
-        cursor.execute(query, (canal_de_venta_id,))
+        query = "SELECT nombre FROM TipoDeFalla WHERE canal_de_venta_id = %s"
+        cursor.execute(query, (canal_id,))
+        tipos_falla = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return tipos_falla
+    else:
+        return []
+
+def obtener_aplicaciones_por_falla(tipo_falla_id):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        query = "SELECT nombre FROM Aplicacion WHERE tipo_de_falla_id = %s"
+        cursor.execute(query, (tipo_falla_id,))
         aplicaciones = [row[0] for row in cursor.fetchall()]
         conn.close()
         return aplicaciones
@@ -53,33 +65,20 @@ def obtener_torre_por_aplicacion(aplicacion_id):
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor()
-        query = """
-            SELECT TorreDeApp.nombre 
-            FROM TorreDeApp 
-            INNER JOIN Aplicacion ON TorreDeApp.id = Aplicacion.aplicacion_id
-            WHERE Aplicacion.id = %s
-        """
+        query = "SELECT nombre FROM TorreDeApp WHERE aplicacion_id = %s"
         cursor.execute(query, (aplicacion_id,))
         torre = cursor.fetchone()
         conn.close()
-        if torre:
-            return torre[0]
-        else:
-            return "No se encontró la torre asociada"
+        return torre[0] if torre else None
     else:
-        return "Error de conexión"
+        return None
 
-def obtener_fallas_por_torre(aplicacion_id):
+def obtener_fallas_por_torre(torre_id):
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor()
-        query = """
-            SELECT Falla.nombre 
-            FROM Falla
-            INNER JOIN Aplicacion ON Falla.aplicacion_id = Aplicacion.id
-            WHERE Aplicacion.id = %s
-        """
-        cursor.execute(query, (aplicacion_id,))
+        query = "SELECT nombre FROM Falla WHERE torre_de_app_id = %s"
+        cursor.execute(query, (torre_id,))
         fallas = [row[0] for row in cursor.fetchall()]
         conn.close()
         return fallas
