@@ -7,8 +7,12 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     if not estado.get("mensaje_inicial_enviado", False):
         nombres_gerencia = obtener_nombres_gerencia()
         if nombres_gerencia:
-            mensaje = "Perfecto, para poder ayudarte ingresa el número de tu requerimiento:\n"
-            mensaje += "\n".join([f"{i+1}\u20E3 {nombre}" for i, nombre in enumerate(nombres_gerencia)])
+            mensaje = "Perfecto, para poder ayudarte ingresa el número de tu requerimiento:\n\n"
+            for i, nombre in enumerate(nombres_gerencia):
+                if i < 9:
+                    mensaje += f"{i+1}\u20E3 {nombre}\n"  # Icono numérico para 1-9
+                else:
+                    mensaje += f"{i+1}. {nombre}\n"  # Número con punto para 10 en adelante
             enviar_mensaje_texto(numero, mensaje)
         else:
             enviar_mensaje_texto(numero, "No se encontraron opciones disponibles. Intente más tarde.")
