@@ -314,7 +314,6 @@ def recibir_mensajes():
                 return jsonify({'status': 'Respuesta a pregunta 8 procesada'}), 200
 
             # Validación del código de correo enviado
-            # Validación del código de correo enviado
             if estado_usuario[numero].get("esperando_codigo_validacion", False):
                 if texto_usuario.upper() == estado_usuario[numero]["codigo_validacion"]:
                     # Registrar al usuario en la base de datos
@@ -331,9 +330,11 @@ def recibir_mensajes():
                     }
                     if registrar_usuario(usuario_data):
                         manejar_usuario_registrado(numero, texto_usuario, estado_usuario)
-                        return jsonify({'status': 'Usuario registrado y mensaje de bienvenida enviado'}), 200
-            
-                    estado_usuario.pop(numero, None)  # Finaliza el proceso
+                        return jsonify({'status': 'Usuario registrado y manejado como registrado'}), 200
+
+                        estado_usuario.pop(numero, None)  # Finaliza el proceso
+                    else:
+                        enviar_mensaje_texto(numero, "Hubo un error al registrar sus datos. Por favor, inténtelo de nuevo más tarde.")
                 else:
                     estado_usuario[numero]["intentos_codigo_validacion"] += 1
                     if estado_usuario[numero]["intentos_codigo_validacion"] == 1:
