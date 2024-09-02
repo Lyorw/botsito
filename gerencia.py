@@ -16,7 +16,7 @@ def manejar_usuario_registrado(numero, texto_usuario, estado_usuario):
     if not estado.get("mensaje_inicial_enviado", False):
         nombres_gerencia = obtener_nombres_gerencia()
         if nombres_gerencia:
-            mensaje = "Perfecto, para poder ayudarte ingresa el número de tu requerimiento:\n\n"
+            mensaje = "Perfecto, para poder ayudarte ingresa tu requerimiento:\n\n"
             for i, nombre in enumerate(nombres_gerencia):
                 numero_icono = "".join(f"{digit}\u20E3" for digit in str(i + 1))
                 mensaje += f"{numero_icono} {nombre}\n"

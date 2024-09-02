@@ -46,11 +46,11 @@ def validar_codigo(codigo):
         return False
     
     if letra == "E":
-        return 5 <= len(codigo) <= 6
+        return 6 <= len(codigo) <= 7
     elif letra == "C":
-        return 5 <= len(codigo) <= 8
+        return 6 == len(codigo)
     elif letra == "D":
-        return 10 <= len(codigo) <= 15
+        return 10 <= len(codigo) <= 16
     else:
         return False
 
@@ -348,7 +348,9 @@ def recibir_mensajes():
         return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
 
 def validar_correo(correo):
-    patron = r'^[A-Za-z]{5,}@(globalhitss\.com|claro\.com\.pe)$'
+    # patron = r'^[A-Za-z]{5,}@(globalhitss\.com|claro\.com\.pe)$'
+    patron = r'^[A-Za-z0-9]{5,}@(globalhitss\.com|claro\.com\.pe)$'
+
     return re.match(patron, correo) is not None
 
 def enviar_mensaje_inicial(numero):
