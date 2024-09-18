@@ -8,6 +8,9 @@ ACCESS_TOKEN = "EAASSqJjOXnUBO8ia7TwJF59zu53oqptY7y63ZAnz7MHrGVEKLoB35OkAQkPtWuC
 PAGE_ID = "421866537676248"
 VERIFY_TOKEN = "ANDERCODE"  # Este token debe coincidir con el configurado en la plataforma de Meta
 
+# Lista para almacenar los mensajes recibidos temporalmente
+mensajes_recibidos = []
+
 def verificar_conexion_meta():
     """Función para verificar la conexión con el API de Meta al iniciar el servidor."""
     try:
@@ -57,11 +60,11 @@ def recibir_mensajes():
             numero = messages.get("from", "")
             texto_usuario = messages.get("text", {}).get("body", "").strip()
             
+            # Almacenar el mensaje recibido
+            mensajes_recibidos.append({'numero': numero, 'mensaje': texto_usuario})
+            
             # Imprimir el mensaje recibido y el número
             print(f"Mensaje recibido de {numero}: {texto_usuario}")
-
-            # Responder automáticamente al mensaje recibido
-            enviar_mensaje_texto(numero, "Respuesta automática: Gracias por tu mensaje!")
 
             return jsonify({'status': 'Mensaje recibido y registrado'}), 200
         else:
@@ -69,6 +72,13 @@ def recibir_mensajes():
     except Exception as e:
         print("Error en el procesamiento del mensaje:", e)
         return jsonify({'error': 'Error en el procesamiento del mensaje'}), 500
+
+@app.route('/get-mensajes', methods=['GET'])
+def obtener_mensajes():
+    """Devuelve todos los mensajes recibidos y los limpia de la memoria."""
+    mensajes = mensajes_recibidos.copy()  # Copia los mensajes para devolverlos
+    mensajes_recibidos.clear()  # Limpia los mensajes de la lista
+    return jsonify(mensajes), 200
 
 @app.route('/send-message', methods=['POST'])
 def send_message():
