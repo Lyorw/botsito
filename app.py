@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 ACCESS_TOKEN = "EAASSqJjOXnUBO8ia7TwJF59zu53oqptY7y63ZAnz7MHrGVEKLoB35OkAQkPtWuCWjaoswCulO9He8rAzbUKIwHcFQ7SX3raHbHNpIMv5H4Ykmt7zwhnMZCCCcZCJAnAXvXLi6C08kkjLjOTf7r8y0ftUCzpchv57TWbip0VmooUe3Xo7iL0V33RV7SEoOLdQI7aFxRak3ZBGzCsKqIFEx4u48ZCME1UwBJNIZD"
 PAGE_ID = "421866537676248"
-VERIFY_TOKEN = "ANDERCODE"  # Este token debe coincidir con el configurado en la plataforma de Meta
+VERIFY_TOKEN = "ANDERCODE"
 
 # Lista para almacenar los mensajes recibidos temporalmente
 mensajes_recibidos = []
@@ -75,10 +75,14 @@ def recibir_mensajes():
 
 @app.route('/get-mensajes', methods=['GET'])
 def obtener_mensajes():
-    """Devuelve todos los mensajes recibidos y los limpia de la memoria."""
-    mensajes = mensajes_recibidos.copy()  # Copia los mensajes para devolverlos
-    mensajes_recibidos.clear()  # Limpia los mensajes de la lista
-    return jsonify(mensajes), 200
+    """Devuelve todos los mensajes recibidos sin limpiar la memoria."""
+    return jsonify(mensajes_recibidos), 200
+
+@app.route('/clear-mensajes', methods=['POST'])
+def limpiar_mensajes():
+    """Limpia todos los mensajes almacenados."""
+    mensajes_recibidos.clear()
+    return jsonify({'status': 'Mensajes limpiados'}), 200
 
 @app.route('/send-message', methods=['POST'])
 def send_message():
