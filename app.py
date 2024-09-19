@@ -4,32 +4,8 @@ import json
 
 app = Flask(__name__)
 
-ACCESS_TOKEN = "EAASSqJjOXnUBOyE5ANrv9KW2M6zaTwAoeuhVzPv8DbZB6lSyzo9iZAIOnEaWGTjGVtnjacEksOV2lJ71VlkdrHDlwe7BDSiZAOSZAVOLxp24TXonOxwOcmZAzEMO7iQH9lDVtLL5xZC8rtO4HMxlRZCxme5KczAsjUQZBDLJIhqlAcLzTZBlFhJXLZAW1QvOkhlXZCDQZAFzuSDbpOO6tsUhlFfKf8xvQAjQC4Lu8KQZD"
-PAGE_ID = "421866537676248"
-VERIFY_TOKEN = "ANDERCODE"
-
 # Lista para almacenar los mensajes recibidos temporalmente
 mensajes_recibidos = []
-
-def verificar_conexion_meta():
-    """Función para verificar la conexión con el API de Meta al iniciar el servidor."""
-    try:
-        conn = http.client.HTTPSConnection("graph.facebook.com")
-        headers = {
-            'Authorization': f'Bearer {ACCESS_TOKEN}'
-        }
-        # Intentar obtener información de la página para verificar la conexión
-        conn.request("GET", f"/v15.0/{PAGE_ID}", headers=headers)
-        res = conn.getresponse()
-        data = res.read()
-
-        if res.status == 200:
-            print("Conexión exitosa con el API de Meta. La API está funcionando correctamente.")
-        else:
-            print(f"Error al conectar con el API de Meta. Estado: {res.status}, Respuesta: {data.decode('utf-8')}")
-
-    except Exception as e:
-        print(f"Excepción al verificar la conexión con el API de Meta: {str(e)}")
 
 @app.route('/webhook', methods=['GET'])
 def verificar_token():
@@ -37,7 +13,10 @@ def verificar_token():
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
 
-    if challenge and token == VERIFY_TOKEN:
+    # Asumimos que el VERIFY_TOKEN se puede pasar como parte de la URL en la configuración de Meta
+    verify_token_local = "ANDERCODE"
+
+    if challenge and token == verify_token_local:
         return challenge
     else:
         return jsonify({'error': 'Token Inválido'}), 401
@@ -90,6 +69,10 @@ def send_message():
     numero = data.get('numero')
     mensaje_texto = data.get('mensaje_texto')
     
+    # Recibir credenciales desde el código local
+    access_token = data.get('access_token')
+    page_id = data.get('page_id')
+
     # Imprimir los datos recibidos para depuración
     print(f"Datos recibidos - Número: {numero}, Mensaje: {mensaje_texto}")
 
@@ -97,13 +80,13 @@ def send_message():
         return jsonify({'error': 'Falta el número o el mensaje'}), 400
 
     try:
-        enviar_mensaje_texto(numero, mensaje_texto)
+        enviar_mensaje_texto(numero, mensaje_texto, access_token, page_id)
         return jsonify({'status': 'Mensaje enviado'}), 200
     except Exception as e:
         print(f"Error al enviar mensaje: {str(e)}")  # Añadir impresión para depuración
         return jsonify({'error': str(e)}), 500
 
-def enviar_mensaje_texto(numero, mensaje_texto):
+def enviar_mensaje_texto(numero, mensaje_texto, access_token, page_id):
     responder_mensaje = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
@@ -113,16 +96,16 @@ def enviar_mensaje_texto(numero, mensaje_texto):
             "body": mensaje_texto
         }
     }
-    enviar_mensaje(responder_mensaje)
+    enviar_mensaje(responder_mensaje, access_token, page_id)
 
-def enviar_mensaje(mensaje):
+def enviar_mensaje(mensaje, access_token, page_id):
     conn = http.client.HTTPSConnection("graph.facebook.com")
     payload = json.dumps(mensaje)
     headers = {
-        'Authorization': f'Bearer {ACCESS_TOKEN}',
+        'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-    conn.request("POST", f"/v15.0/{PAGE_ID}/messages", payload, headers)
+    conn.request("POST", f"/v15.0/{page_id}/messages", payload, headers)
     res = conn.getresponse()
     data = res.read()
     
@@ -130,6 +113,6 @@ def enviar_mensaje(mensaje):
     print("Respuesta de Facebook API:", data.decode("utf-8"))
 
 if __name__ == '__main__':
-    # Verificar la conexión con el API de Meta al iniciar el servidor
-    verificar_conexion_meta()
+    # Verificar la conexión con el API de Meta al iniciar el servidor (opcional)
+    # verificar_conexion_meta()
     app.run(host='0.0.0.0', port=80)
